@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>Change User Role</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+
+</head>
+
+<body>
+<div class="sidebar">
+    <div class="top">
+
+    </div>
+    <div class="user">
+        <img src="../favicon.ico" alt="alt" class="user-img">
+        <div>
+            <p class="bold">User Name</p>
+            <p>Admin</p>
+        </div>
+    </div>
+    <ul>
+        <li>
+            <a href="../index.html">
+                <i class="material-symbols-outlined">dataset</i>
+                <span class="nav-item">Main Page</span>
+            </a>
+            <span class="tooltip">Main Page</span>
+        </li>
+        <li>
+            <a href='registerScr.html'>
+                <i class="material-symbols-outlined">person_add</i>
+                <span class="nav-item">Register</span>
+            </a>
+            <span class="tooltip">Register</span>
+        </li>
+        <li>
+            <a href="loginScr.html">
+                <i class="material-symbols-outlined">login</i>
+                <span class="nav-item">Login</span>
+            </a>
+            <span class="tooltip">Login</span>
+        </li>
+        <li>
+            <a href="changeRoleScr.html">
+                <i class="material-symbols-outlined">person_edit</i>
+                <span class="nav-item">Role</span>
+            </a>
+            <span class="tooltip">Role</span>
+        </li>
+        <li>
+            <a href="state_change.html">
+                <i class="material-symbols-outlined">person_check</i>
+                <span class="nav-item">State</span>
+            </a>
+            <span class="tooltip">State</span>
+        </li>
+        <li>
+            <a href="remove_user.html">
+                <i class="material-symbols-outlined">person_remove</i>
+                <span class="nav-item">Remove User</span>
+            </a>
+            <span class="tooltip">Remove User</span>
+        </li>
+        <li>
+            <a href="list_users.html">
+                <i class="material-symbols-outlined">contacts</i>
+                <span class="nav-item">List Users</span>
+            </a>
+            <span class="tooltip">List Users</span>
+        </li>
+        <li>
+            <a href="attributes_change.html">
+                <i class="material-symbols-outlined">user_attributes</i>
+                <span class="nav-item">User Attributes</span>
+            </a>
+            <span class="tooltip">User Attributes</span>
+        </li>
+        <li>
+            <a href="password_change.html">
+                <i class="material-symbols-outlined">password</i>
+                <span class="nav-item">Change Password</span>
+            </a>
+            <span class="tooltip">Change Password</span>
+        </li>
+        <li>
+            <a href="token.html">
+                <i class="material-symbols-outlined">token</i>
+                <span class="nav-item">Your Token</span>
+            </a>
+            <span class="tooltip">Your Token</span>
+        </li>
+        <li>
+            <a href="logout.html">
+                <i class="material-symbols-outlined">logout</i>
+                <span class="nav-item">Logout</span>
+            </a>
+            <span class="tooltip">Logout</span>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <form method="post" id="roleForm">
+        <fieldset>
+            <legend>Enter User Info</legend>
+            <p>
+                <label for="usernameTwo">Target User ID:</label>
+                <input type="text" name="usernameTwo" id="usernameTwo"/>
+            </p>
+            <p>
+                <label for="newRole">Role:</label>
+                <select name="newRole" id="newRole">
+                    <option value="USER">USER</option>
+                    <option value="GBO">GBO</option>
+                    <option value="GA">GA</option>
+                    <option value="SU">SU</option>
+                </select>
+            </p>
+            <p>
+                <input type="submit"/>
+                <input type="reset"/>
+            </p>
+        </fieldset>
+    </form>
+</div>
+</body>
+
+<script>
+    const btn = document.querySelector('#btn');
+    const sidebar = document.querySelector('.sidebar');
+    const form = document.querySelector("#roleForm");
+
+    btn.onclick = function () {
+        sidebar.classList.toggle('active');
+    };
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitForm();
+    });
+
+    function submitForm() {
+        var usernameOne = localStorage.getItem("usernameOne", usernameOne);
+        var usernameTwo = document.getElementById('usernameTwo').value;
+        var newRole = document.getElementById('newRole').value;
+
+
+        // All fields are filled, make the AJAX call to submit the form
+        var requestData = {
+            "usernameOne": usernameOne,
+            "usernameTwo": usernameTwo,
+            "newRole": newRole
+        }
+
+        // Make AJAX POST request to your backend
+        fetch('../../rest/change_role/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log("Success");
+                    alert('Role change successful');
+                    document.getElementById("roleForm").reset();
+                    window.location = '../index.html';
+                } else {
+                    alert ("Error changing Role in.");
+                    throw new Error('Failed to change Role');
+                }
+            })
+    };
+</script>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>My First Web App</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+
+</head>
+
+<body>
+<div class="sidebar">
+    <div class="top">
+
+    </div>
+    <div class="user">
+        <img src="../favicon.ico" alt="alt" class="user-img">
+        <div>
+            <p class="bold">User Name</p>
+            <p>Admin</p>
+        </div>
+    </div>
+    <ul>
+        <li>
+            <a href="../index.html">
+                <i class="material-symbols-outlined">dataset</i>
+                <span class="nav-item">Main Page</span>
+            </a>
+            <span class="tooltip">Main Page</span>
+        </li>
+        <li>
+            <a href='registerScr.html'>
+                <i class="material-symbols-outlined">person_add</i>
+                <span class="nav-item">Register</span>
+            </a>
+            <span class="tooltip">Register</span>
+        </li>
+        <li>
+            <a href="loginScr.html">
+                <i class="material-symbols-outlined">login</i>
+                <span class="nav-item">Login</span>
+            </a>
+            <span class="tooltip">Login</span>
+        </li>
+        <li>
+            <a href="changeRoleScr.html">
+                <i class="material-symbols-outlined">person_edit</i>
+                <span class="nav-item">Role</span>
+            </a>
+            <span class="tooltip">Role</span>
+        </li>
+        <li>
+            <a href="#">
+                <i class="material-symbols-outlined">person_check</i>
+                <span class="nav-item">State</span>
+            </a>
+            <span class="tooltip">State</span>
+        </li>
+        <li>
+            <a href="#">
+                <i class="material-symbols-outlined">person_remove</i>
+                <span class="nav-item">Remove User</span>
+            </a>
+            <span class="tooltip">Remove User</span>
+        </li>
+        <li>
+            <a href="#">
+                <i class="material-symbols-outlined">contacts</i>
+                <span class="nav-item">List Users</span>
+            </a>
+            <span class="tooltip">List Users</span>
+        </li>
+        <li>
+            <a href="#">
+                <i class="material-symbols-outlined">user_attributes</i>
+                <span class="nav-item">User Attributes</span>
+            </a>
+            <span class="tooltip">User Attributes</span>
+        </li>
+        <li>
+            <a href="#">
+                <i class="material-symbols-outlined">password</i>
+                <span class="nav-item">Change Password</span>
+            </a>
+            <span class="tooltip">Change Password</span>
+        </li>
+        <li>
+            <a href="#">
+                <i class="material-symbols-outlined">token</i>
+                <span class="nav-item">Your Token</span>
+            </a>
+            <span class="tooltip">Your Token</span>
+        </li>
+        <li>
+            <a href="#">
+                <i class="material-symbols-outlined">logout</i>
+                <span class="nav-item">Logout</span>
+            </a>
+            <span class="tooltip">Logout</span>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+
+    <form method="post" id="registerForm">
+        <fieldset>
+            <legend>Enter Your User Info</legend>
+            <p>
+                <label for="username">UserName:</label>
+                <input type="text" name="username" id="username" placeholder="Required" required/>
+            </p>
+            <p>
+                <label for="email">Email:</label>
+                <input type="email" name="email" id="email" placeholder="Required" required/>
+            </p>
+            <p>
+                <label for="profile">Profile:</label>
+                <input type="text" name="profile" id="profile" placeholder="Required" required/>
+            </p>
+            <p>
+                <label for="phone">Phone:</label>
+                <input type="tel" name="phone" id="phone" placeholder="Required" required/>
+            </p>
+            <p>
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" placeholder="Required" required/>
+            </p>
+            <p>
+                <label for="isPublic">Public Account:</label>
+                <input type="checkbox" name="isPublic" id="isPublic"/>
+            </p>
+            <p>
+                <label for="occupation">Occupation:</label>
+                <input type="text" name="occupation" id="occupation" placeholder="Not Required"/>
+            </p>
+            <p>
+                <label for="workplace">Workplace:</label>
+                <input type="text" name="workplace" id="workplace" placeholder="Not Required"/>
+            </p>
+            <p>
+                <label for="address">Address:</label>
+                <input type="text" name="address" id="address" placeholder="Not Required"/>
+            </p>
+            <p>
+                <label for="postalCode">Postal Code:</label>
+                <input type="text" name="postalCode" id="postalCode" placeholder="Not Required"/>
+            </p>
+            <p>
+                <label for="NIF">NIF:</label>
+                <input type="text" name="NIF" id="NIF" placeholder="Not Required"/>
+            </p>
+            <p>
+                <input type="submit" onclick="submitForm()"/>
+                <input type="reset"/>
+            </p>
+        </fieldset>
+    </form>
+</div>
+
+</body>
+
+<script>
+    const form = document.querySelector("#registerForm");
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitForm();
+    });
+
+    function submitForm() {
+        var username = document.getElementById('username').value;
+        var email = document.getElementById('email').value;
+        var profile = document.getElementById('profile').value;
+        var phone = document.getElementById('phone').value;
+        var password = document.getElementById('password').value;
+        var isPublic = document.getElementById('isPublic').value;
+        var occupation = document.getElementById('occupation').value;
+        var workplace = document.getElementById('workplace').value;
+        var address = document.getElementById('address').value;
+        var postalCode = document.getElementById('postalCode').value;
+        var NIF = document.getElementById('NIF').value;
+
+        // All fields are filled, make the AJAX call to submit the form
+        var requestData = {
+            "username": username,
+            "email": email,
+            "profile": profile,
+            "phone": phone,
+            "password": password,
+            "isPublic": isPublic,
+            "occupation": occupation,
+            "workplace": workplace,
+            "address": address,
+            "postalCode": postalCode,
+            "NIF": NIF
+        };
+
+        // Make AJAX POST request to your backend
+        fetch('../../rest/register/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log("Success");
+                    alert('Registration successful');
+                    document.getElementById("registerForm").reset();
+                    window.location = '../index.html';
+                } else {
+                    alert ("Error Signing up. User Name already exists.");
+                    throw new Error('Failed to register');
+                }
+            })
+    }
+</script>
+
+</html>

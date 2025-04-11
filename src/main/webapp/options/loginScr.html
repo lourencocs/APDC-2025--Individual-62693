@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>Login</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+
+</head>
+
+<body>
+<div class="sidebar">
+    <div class="top">
+
+
+    </div>
+    <div class="user">
+        <img src="../favicon.ico" alt="alt" class="user-img">
+        <div>
+            <p class="bold">User Name</p>
+            <p>Admin</p>
+        </div>
+    </div>
+    <ul>
+        <li>
+            <a href="../index.html">
+                <i class="material-symbols-outlined">dataset</i>
+                <span class="nav-item">Main Page</span>
+            </a>
+            <span class="tooltip">Main Page</span>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <form method="post" id="loginForm">
+        <fieldset>
+            <legend>Enter Your User Info</legend>
+            <p>
+                <label for="username">User Name:</label>
+                <input type="text" name="username" id="username"/>
+            </p>
+            <p>
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password"/>
+            </p>
+            <p>
+                <input type="submit"/>
+                <input type="reset"/>
+            </p>
+        </fieldset>
+    </form>
+</div>
+</body>
+
+<script>
+
+    const form = document.querySelector("#loginForm");
+
+
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitForm();
+    });
+
+    function submitForm() {
+        var userID = document.getElementById('username').value;
+        localStorage.setItem("username", userID);
+        var password = document.getElementById('password').value;
+
+        // All fields are filled, make the AJAX call to submit the form
+        var requestData = {
+            "username": usermame,
+            "password": password
+        }
+
+        // Make AJAX POST request to your backend
+        fetch('../../rest/login/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log("Success");
+                    alert('Log in successful');
+                    document.getElementById("loginForm").reset();
+                    window.location = '../index.html';
+                } else {
+                    alert ("Error Logging in.");
+                    throw new Error('Failed to login');
+                }
+            })
+    };
+</script>
+</html>
