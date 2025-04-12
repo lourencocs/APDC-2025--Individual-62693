@@ -6,18 +6,18 @@ public class RegisterData {
     public String password;
     public String email;
     public String profile;
-    public int phone;
+    public String phone;
+    public boolean isPublic;
 
-    public String isPublic, occupation, workplace, address, postalCode, NIF;
+    public String occupation, workplace, address, postalCode, NIF;
 
     public byte[] profilePic;
 
     public RegisterData() {
-
     }
 
-    public RegisterData(String username,String email, String profile, int phone, String password, String isPublic,
-                        String occupation, String workplace, String address, String postalCode,String NIF,byte[] profilePic) {
+    public RegisterData(String username, String email, String profile, String phone, String password, boolean isPublic,
+                        String occupation, String workplace, String address, String postalCode, String NIF, byte[] profilePic) {
         this.username = username;
         this.email = email;
         this.profile = profile;
@@ -32,11 +32,10 @@ public class RegisterData {
         this.profilePic = profilePic;
     }
 
-
     public boolean validRegistration() {
-        if(username == null || password == null || email == null || profile == null ) {
-            return false;
-        }
-        return true;
+        return username != null && !username.isEmpty()
+                && password != null && !password.isEmpty()
+                && email != null && !email.isEmpty()
+                && phone != null && !phone.isEmpty();
     }
 }
