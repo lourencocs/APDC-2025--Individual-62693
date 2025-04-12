@@ -2,6 +2,7 @@ package pt.unl.fct.di.apdc.firstwebapp.util;
 
 public class RegisterData {
 
+    public String userID;
     public String username;
     public String password;
     public String email;
@@ -16,8 +17,9 @@ public class RegisterData {
     public RegisterData() {
     }
 
-    public RegisterData(String username, String email, String profile, String phone, String password, boolean isPublic,
+    public RegisterData(String userID, String username, String email, String profile, String phone, String password, boolean isPublic,
                         String occupation, String workplace, String address, String postalCode, String NIF, byte[] profilePic) {
+        this.userID = userID;
         this.username = username;
         this.email = email;
         this.profile = profile;
@@ -33,7 +35,8 @@ public class RegisterData {
     }
 
     public boolean validRegistration() {
-        return username != null && !username.isEmpty()
+        return userID != null && !userID.isEmpty()
+                && username != null && !username.isEmpty()
                 && password != null && !password.isEmpty()
                 && email != null && !email.isEmpty()
                 && phone != null && !phone.isEmpty();

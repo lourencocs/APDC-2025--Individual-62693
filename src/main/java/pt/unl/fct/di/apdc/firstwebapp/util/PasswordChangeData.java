@@ -2,21 +2,32 @@ package pt.unl.fct.di.apdc.firstwebapp.util;
 
 public class PasswordChangeData {
 
-    public String userID, password1, password2, newPassword;
+    // Changed from userID to authToken
+    public String authToken;
+    // Keep password fields
+    public String currentPassword; // Renamed from password1 for clarity
+    public String newPassword;
+    public String newPasswordConfirmation; // Renamed from password2
 
+    public PasswordChangeData() {}
 
-    public PasswordChangeData() {
-
-    }
-
-    public PasswordChangeData(String userID, String password1, String password2, String newPassword) {
-        this.userID = userID;
-        this.password1 = password1;
-        this.password2 = password2;
+    // Constructor updated
+    public PasswordChangeData(String authToken, String currentPassword, String newPassword, String newPasswordConfirmation) {
+        this.authToken = authToken;
+        this.currentPassword = currentPassword;
         this.newPassword = newPassword;
+        this.newPasswordConfirmation = newPasswordConfirmation;
     }
 
+    // Validation updated
     public boolean validPasswordChange() {
-        return userID != null && password1 != null && password1.equals(password2) && newPassword != null;
+        // Check token presence, password presence, and if new passwords match
+        return authToken != null && !authToken.isEmpty() &&
+                currentPassword != null && !currentPassword.isEmpty() &&
+                newPassword != null && !newPassword.isEmpty() &&
+                newPassword.equals(newPasswordConfirmation);
+        // Add complexity check for newPassword if desired
+        // && isValidPasswordComplexity(newPassword);
     }
+
 }
