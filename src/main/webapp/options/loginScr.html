@@ -1,56 +1,58 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
-<head>
-    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
-    <title>Login</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
-</head>
 
 <body>
 <div class="sidebar">
-    <div class="top">
-    </div>
-    <div class="user">
-        <img src="../favicon.ico" alt="alt" class="user-img">
-        <div>
-            <p class="bold" id="userNameDisplay">None</p>
-            <p id="userRoleDisplay">None</p>
-        </div>
-    </div>
     <ul>
         <li>
             <a href="../index.html">
-                <i class="material-symbols-outlined">dataset</i>
                 <span class="nav-item">Main Page</span>
             </a>
-            <span class="tooltip">Main Page</span>
         </li>
     </ul>
 </div>
 
 <div class="main-content">
-    <form method="post" id="loginForm">
-        <fieldset>
-            <legend>Enter Your User Info</legend>
-            <p>
-                <label for="userID">User ID:</label>
-                <input type="text" name="userID" id="userID"/>
-            </p>
-            <p>
-                <label for="password">Password:</label>
-                <input type="password" name="password" id="password"/>
-            </p>
-            <p>
-                <input type="submit"/>
-                <input type="reset"/>
-            </p>
-        </fieldset>
-    </form>
+    <div id="loginStatus"></div>
+    <div id="loginFormContainer">
+        <form method="post" id="loginForm">
+            <fieldset>
+                <legend>Enter Your User Info</legend>
+                <p>
+                    <label for="userID">User ID:</label>
+                    <input type="text" name="userID" id="userID"/>
+                </p>
+                <p>
+                    <label for="password">Password:</label>
+                    <input type="password" name="password" id="password"/>
+                </p>
+                <p>
+                    <input type="submit"/>
+                    <input type="reset"/>
+                </p>
+            </fieldset>
+        </form>
+    </div>
 </div>
 </body>
 
 <script>
     const form = document.querySelector("#loginForm");
+    const loginStatus = document.getElementById('loginStatus');
+    const loginFormContainer = document.getElementById('loginFormContainer');
+
+    function checkLoginStatus() {
+        const username = sessionStorage.getItem('username');
+        if (username) {
+            loginStatus.innerHTML = `<p>You are already logged in as ${username}.</p>`;
+            loginFormContainer.style.display = 'none';
+        } else {
+            loginStatus.style.display = 'none';
+            loginFormContainer.style.display = 'block';
+        }
+    }
+
+    checkLoginStatus(); // Check on page load
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -73,7 +75,13 @@
             },
             body: JSON.stringify(requestData)
         })
-            .then(response => response.json()) // Parse JSON response
+            .then(response => {
+                if (!response.ok) { // Check if the response status is not OK (meaning an error)
+                    console.error('Login failed:', response.status);
+                    return; // Stop further processing in the .then block
+                }
+                return response.json(); // If the status is OK, parse the JSON
+            })
             .then(data => {
                 console.log("Success", data);
                 sessionStorage.setItem("username", data.username);

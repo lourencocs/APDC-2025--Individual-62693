@@ -3,7 +3,7 @@ package pt.unl.fct.di.apdc.firstwebapp.resources;
 import com.google.cloud.datastore.*;
 import com.google.gson.Gson;
 import pt.unl.fct.di.apdc.firstwebapp.util.AuthUtil;
-import pt.unl.fct.di.apdc.firstwebapp.util.OpResult; // Import OpResult
+import pt.unl.fct.di.apdc.firstwebapp.util.OpResult;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -44,9 +44,9 @@ public class ListUsersResource {
     private static final String ROLE_GA = "GA";
     private static final String ROLE_SU = "SU";
     private static final boolean STATE_ACTIVE = true;
-    private static final String OPERATION_NAME = "OP6 - listUsers"; // Operation Name.
+    private static final String OPERATION_NAME = "OP6 - listUsers";
 
-    @GET
+    @POST // Changed to POST
     @Path("/")
     public Response listUsers(@HeaderParam(HttpHeaders.AUTHORIZATION) String authHeader) {
         LOG.fine("Attempting to list users.");
