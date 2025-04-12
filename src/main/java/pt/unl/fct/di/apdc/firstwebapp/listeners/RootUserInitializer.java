@@ -27,7 +27,6 @@ public class RootUserInitializer implements ServletContextListener {
             Entity user = txn.get(userKey);
             if (user == null) {
                 user = Entity.newBuilder(userKey)
-                        .set("userID", "root")
                         .set("user_name", "root")
                         .set("user_email", "root@example.com")
                         .set("user_phone", "+1234567890")

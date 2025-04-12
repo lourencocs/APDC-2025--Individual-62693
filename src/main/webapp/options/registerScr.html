@@ -4,13 +4,11 @@
     <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
     <title>My First Web App</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
-
 </head>
 
 <body>
 <div class="sidebar">
     <div class="top">
-
     </div>
     <div class="user">
         <img src="../favicon.ico" alt="alt" class="user-img">
@@ -31,21 +29,20 @@
 </div>
 
 <div class="main-content">
-
     <form method="post" id="registerForm">
         <fieldset>
             <legend>Enter Your User Info</legend>
             <p>
-                <label for="username">UserName:</label>
-                <input type="text" name="username" id="username" placeholder="Required" required/>
+                <label for="userID">UserID:</label>
+                <input type="text" name="userID" id="userID" placeholder="Required" required/>
+            </p>
+            <p>
+                <label for="name">Name:</label>
+                <input type="text" name="name" id="name" placeholder="Required" required/>
             </p>
             <p>
                 <label for="email">Email:</label>
                 <input type="email" name="email" id="email" placeholder="Required" required/>
-            </p>
-            <p>
-                <label for="profile">Profile:</label>
-                <input type="text" name="profile" id="profile" placeholder="Required" required/>
             </p>
             <p>
                 <label for="phone">Phone:</label>
@@ -56,28 +53,28 @@
                 <input type="password" name="password" id="password" placeholder="Required" required/>
             </p>
             <p>
-                <label for="isPublic">Public Account:</label>
-                <input type="checkbox" name="isPublic" id="isPublic"/>
+                <label for="profile">Profile:</label>
+                <input type="text" name="profile" id="profile" placeholder="Optional"/>
             </p>
             <p>
                 <label for="occupation">Occupation:</label>
-                <input type="text" name="occupation" id="occupation" placeholder="Not Required"/>
+                <input type="text" name="occupation" id="occupation" placeholder="Optional"/>
             </p>
             <p>
                 <label for="workplace">Workplace:</label>
-                <input type="text" name="workplace" id="workplace" placeholder="Not Required"/>
+                <input type="text" name="workplace" id="workplace" placeholder="Optional"/>
             </p>
             <p>
                 <label for="address">Address:</label>
-                <input type="text" name="address" id="address" placeholder="Not Required"/>
+                <input type="text" name="address" id="address" placeholder="Optional"/>
             </p>
             <p>
                 <label for="postalCode">Postal Code:</label>
-                <input type="text" name="postalCode" id="postalCode" placeholder="Not Required"/>
+                <input type="text" name="postalCode" id="postalCode" placeholder="Optional"/>
             </p>
             <p>
                 <label for="NIF">NIF:</label>
-                <input type="text" name="NIF" id="NIF" placeholder="Not Required"/>
+                <input type="text" name="NIF" id="NIF" placeholder="Optional"/>
             </p>
             <p>
                 <input type="submit" onclick="submitForm()"/>
@@ -98,26 +95,25 @@
     });
 
     function submitForm() {
-        var username = document.getElementById('username').value;
+        var userID = document.getElementById('userID').value;
+        var name = document.getElementById('name').value;
         var email = document.getElementById('email').value;
-        var profile = document.getElementById('profile').value;
         var phone = document.getElementById('phone').value;
         var password = document.getElementById('password').value;
-        var isPublic = document.getElementById('isPublic').value;
+        var profile = document.getElementById('profile').value;
         var occupation = document.getElementById('occupation').value;
         var workplace = document.getElementById('workplace').value;
         var address = document.getElementById('address').value;
         var postalCode = document.getElementById('postalCode').value;
         var NIF = document.getElementById('NIF').value;
 
-        // All fields are filled, make the AJAX call to submit the form
         var requestData = {
-            "username": username,
+            "userID": userID,
+            "name": name,
             "email": email,
-            "profile": profile,
             "phone": phone,
             "password": password,
-            "isPublic": isPublic,
+            "profile": profile,
             "occupation": occupation,
             "workplace": workplace,
             "address": address,
@@ -125,7 +121,6 @@
             "NIF": NIF
         };
 
-        // Make AJAX POST request to your backend
         fetch('../../rest/register/', {
             method: 'POST',
             headers: {
@@ -140,10 +135,13 @@
                     document.getElementById("registerForm").reset();
                     window.location = '../index.html';
                 } else {
-                    alert ("Error Signing up. User Name already exists.");
+                    alert("Error Signing up. User ID already exists or invalid data.");
                     throw new Error('Failed to register');
                 }
             })
+            .catch(error => {
+                console.error('Error:', error);
+            });
     }
 </script>
 

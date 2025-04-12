@@ -37,8 +37,6 @@ public class AuthUtil {
         long expirationDate = tokenEntity.getLong("expiration_date"); // Ensure this field name is used when storing
         if (expirationDate < System.currentTimeMillis()) {
             LOG.warning("Token validation failed: Token expired - " + tokenID);
-            // Optional: Clean up expired token here or via a batch job
-            // datastore.delete(tokenKey);
             return null; // Token expired
         }
 

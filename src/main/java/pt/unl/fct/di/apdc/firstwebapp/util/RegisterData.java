@@ -4,12 +4,12 @@ public class RegisterData {
 
     public String userID;
     public String username;
+    public String name;
     public String password;
     public String email;
-    public String profile;
     public String phone;
-    public boolean isPublic;
 
+    public String profile;
     public String occupation, workplace, address, postalCode, NIF;
 
     public byte[] profilePic;
@@ -17,15 +17,14 @@ public class RegisterData {
     public RegisterData() {
     }
 
-    public RegisterData(String userID, String username, String email, String profile, String phone, String password, boolean isPublic,
-                        String occupation, String workplace, String address, String postalCode, String NIF, byte[] profilePic) {
+    public RegisterData(String userID, String name, String email, String phone, String password,
+                        String profile, String occupation, String workplace, String address, String postalCode, String NIF, byte[] profilePic) {
         this.userID = userID;
-        this.username = username;
+        this.name = name;
         this.email = email;
-        this.profile = profile;
         this.phone = phone;
         this.password = password;
-        this.isPublic = isPublic;
+        this.profile = profile;
         this.occupation = occupation;
         this.workplace = workplace;
         this.address = address;
@@ -36,7 +35,7 @@ public class RegisterData {
 
     public boolean validRegistration() {
         return userID != null && !userID.isEmpty()
-                && username != null && !username.isEmpty()
+                && name != null && !name.isEmpty()
                 && password != null && !password.isEmpty()
                 && email != null && !email.isEmpty()
                 && phone != null && !phone.isEmpty();

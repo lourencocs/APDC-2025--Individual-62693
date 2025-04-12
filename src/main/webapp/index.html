@@ -4,23 +4,23 @@
   <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
   <title>My First Web App</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
-
 </head>
 
 <body>
 
+<button id="btn">Toggle Sidebar</button>
+
+<div class="sidebar">
   <div class="top">
     <div class="logo">
-
       <span>My First Web App</span>
     </div>
-
   </div>
   <div class="user">
     <img src="favicon.ico" alt="alt" class="user-img">
-    <div>
-      <p class="bold">User Name</p>
-      <p>Admin</p>
+    <div id="userInfo">
+      <p class="bold" id="userNameDisplay">None</p>
+      <p id="userRoleDisplay">None</p>
     </div>
   </div>
   <ul>
@@ -32,7 +32,7 @@
       <span class="tooltip"> Main Page</span>
     </li>
     <li>
-      <a href='options/registerScr.html'>
+      <a href="options/registerScr.html">
         <i class="material-symbols-outlined">person_add</i>
         <span class="nav-item"> Register</span>
       </a>
@@ -102,7 +102,7 @@
       <span class="tooltip"> Logout</span>
     </li>
   </ul>
-
+</div>
 
 <div class="main-content">
   <h2>First web app</h2>
@@ -122,19 +122,38 @@
 
 </div>
 
-</body>
-
 <script>
   const btn = document.querySelector('#btn');
   const sidebar = document.querySelector('.sidebar');
 
-  btn.onclick = function () {
-    sidebar.classList.toggle('active');
-  };
+  if (btn) {
+    btn.onclick = function () {
+      sidebar.classList.toggle('active');
+    };
+  }
+
+  function displayUserInfo() {
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    const userRoleDisplay = document.getElementById('userRoleDisplay');
+    const username = sessionStorage.getItem('username');
+    const role = sessionStorage.getItem('role');
+
+    if (username && role) {
+      userNameDisplay.textContent = username;
+      userRoleDisplay.textContent = role;
+    } else {
+      userNameDisplay.textContent = "None";
+      userRoleDisplay.textContent = "None";
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', displayUserInfo);
+
 </script>
 
 <footer>
   Copyright: ADC-PEI, FCT NOVA 2025
 </footer>
 
+</body>
 </html>
