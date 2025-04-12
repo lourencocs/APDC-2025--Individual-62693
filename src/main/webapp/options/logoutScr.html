@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+
+<head>
+    <title>Logout</title>
+</head>
+
+<body>
+<div class="sidebar">
+    <ul>
+        <li>
+            <a href="../index.html">
+                <span class="nav-item">Main Page</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div id="logoutStatus"></div>
+</div>
+
+<script>
+    const logoutStatus = document.getElementById('logoutStatus');
+
+    function logoutUser() {
+        const token = sessionStorage.getItem('token');
+
+        if (!token) {
+            logoutStatus.innerHTML = `<p>No user currently logged on.</p>`;
+            return;
+        }
+
+        fetch('../../rest/logout/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Logout Response:", data);
+                sessionStorage.removeItem('userID');
+                sessionStorage.removeItem('role');
+                sessionStorage.removeItem('token');
+                logoutStatus.innerHTML = `<p>Logout successful.</p>`;
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                logoutStatus.innerHTML = `<p>Logout failed.</p>`;
+            });
+    }
+
+    logoutUser();
+</script>
+</body>
+
+</html>

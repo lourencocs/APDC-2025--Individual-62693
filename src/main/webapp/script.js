@@ -1,7 +1,7 @@
 function displayUserInfo() {
     const userNameDisplay = document.getElementById('userNameDisplay');
     const userRoleDisplay = document.getElementById('userRoleDisplay');
-    const username = sessionStorage.getItem('username');
+    const username = sessionStorage.getItem('userID');
     const role = sessionStorage.getItem('role');
 
     if (username && role) {

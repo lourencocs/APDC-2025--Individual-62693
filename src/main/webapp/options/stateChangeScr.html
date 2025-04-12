@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>Change User State</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+</head>
+
+<body>
+<div class="sidebar">
+    <ul>
+        <li>
+            <a href="../index.html">
+                <span class="nav-item">Main Page</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div id="stateStatus"></div>
+    <form method="post" id="stateForm">
+        <fieldset>
+            <legend>Change User State</legend>
+            <p>
+                <label for="usernameTwo">Target User ID:</label>
+                <input type="text" name="usernameTwo" id="usernameTwo"/>
+            </p>
+            <p>
+                <label for="newState">New State:</label>
+                <select name="newState" id="newState">
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                </select>
+            </p>
+            <p>
+                <input type="submit" value="Change State"/>
+                <input type="reset"/>
+            </p>
+        </fieldset>
+    </form>
+</div>
+</body>
+
+<script>
+    const stateStatus = document.getElementById('stateStatus');
+    const form = document.querySelector("#stateForm");
+
+    function displayCurrentUserRole() {
+        const username = sessionStorage.getItem("userID");
+        const role = sessionStorage.getItem("role");
+
+        if (username && role) {
+            stateStatus.innerHTML = `<p>Your role: ${role}</p>`;
+        } else {
+            stateStatus.innerHTML = `<p>Your role: none</p><p>No user logged in</p>`;
+            // Optionally disable the form if no user is logged in
+            const stateForm = document.getElementById('stateForm');
+            if (stateForm) {
+                stateForm.style.display = 'none';
+            }
+        }
+    }
+
+    displayCurrentUserRole(); // Display role on page load
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitForm();
+    });
+
+    function submitForm() {
+        const loggedInUsername = sessionStorage.getItem("userID");
+        const token = sessionStorage.getItem("token");
+        const usernameTwo = document.getElementById('usernameTwo').value;
+        const newState = document.getElementById('newState').value;
+
+        if (!loggedInUsername || !token) {
+            alert("You must be logged in to change user state.");
+            return;
+        }
+
+        // All fields are filled, make the AJAX call to submit the form
+        var requestData = {
+            "userID1": loggedInUsername, // User initiating the change
+            "userID2": usernameTwo      // Target user
+        };
+
+        // Make AJAX POST request to your backend
+        fetch('../../rest/changestate/', { // Use the correct backend endpoint
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token // Include the token in the header
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log("Success");
+                    alert(`User state changed to ${newState.toLowerCase()}.`);
+                    document.getElementById("stateForm").reset();
+                    window.location = '../index.html';
+                } else {
+                    alert ("Error changing user state.");
+                    console.error('Failed to change user state', response.status);
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                alert("Error communicating with the server.");
+            });
+    };
+</script>
+</html>

@@ -4,7 +4,6 @@
     <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
     <title>Change User Role</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
-
 </head>
 
 <body>
@@ -19,9 +18,10 @@
 </div>
 
 <div class="main-content">
+    <div id="roleStatus"></div>
     <form method="post" id="roleForm">
         <fieldset>
-            <legend>Enter User Info</legend>
+            <legend>Change User Role</legend>
             <p>
                 <label for="usernameTwo">Target User ID:</label>
                 <input type="text" name="usernameTwo" id="usernameTwo"/>
@@ -45,13 +45,26 @@
 </body>
 
 <script>
-    const btn = document.querySelector('#btn');
-    const sidebar = document.querySelector('.sidebar');
+    const roleStatus = document.getElementById('roleStatus');
     const form = document.querySelector("#roleForm");
 
-    btn.onclick = function () {
-        sidebar.classList.toggle('active');
-    };
+    function displayCurrentUserRole() {
+        const userID = sessionStorage.getItem("userID");
+        const role = sessionStorage.getItem("role");
+
+        if (userID && role) {
+            roleStatus.innerHTML = `<p>Your role: ${role}</p>`;
+        } else {
+            roleStatus.innerHTML = `<p>Your role: none</p><p>No user logged in</p>`;
+            // Optionally disable the form if no user is logged in
+            const roleForm = document.getElementById('roleForm');
+            if (roleForm) {
+                roleForm.style.display = 'none';
+            }
+        }
+    }
+
+    displayCurrentUserRole(); // Display role on page load
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -59,23 +72,29 @@
     });
 
     function submitForm() {
-        var usernameOne = localStorage.getItem("usernameOne");
-        var usernameTwo = document.getElementById('usernameTwo').value;
-        var newRole = document.getElementById('newRole').value;
+        const loggedInUsername = sessionStorage.getItem("userID");
+        const token = sessionStorage.getItem("token");
+        const usernameTwo = document.getElementById('usernameTwo').value;
+        const newRole = document.getElementById('newRole').value;
 
+        if (!loggedInUsername || !token) {
+            alert("You must be logged in to change roles.");
+            return;
+        }
 
         // All fields are filled, make the AJAX call to submit the form
         var requestData = {
-            "usernameOne": usernameOne,
-            "usernameTwo": usernameTwo,
+            "userID1": loggedInUsername, // User initiating the change
+            "userID2": usernameTwo,      // Target user
             "newRole": newRole
-        }
+        };
 
         // Make AJAX POST request to your backend
-        fetch('../../rest/change_role/', {
+        fetch('../../rest/changerole/', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token // Include the token in the header
             },
             body: JSON.stringify(requestData)
         })
@@ -87,9 +106,13 @@
                     window.location = '../index.html';
                 } else {
                     alert ("Error changing Role in.");
-                    throw new Error('Failed to change Role');
+                    console.error('Failed to change Role', response.status);
                 }
             })
+            .catch(error => {
+                console.error('Network error:', error);
+                alert("Error communicating with the server.");
+            });
     };
 </script>
 </html>

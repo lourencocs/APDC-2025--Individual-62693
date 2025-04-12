@@ -42,7 +42,7 @@
     const loginFormContainer = document.getElementById('loginFormContainer');
 
     function checkLoginStatus() {
-        const username = sessionStorage.getItem('username');
+        const username = sessionStorage.getItem('userID');
         if (username) {
             loginStatus.innerHTML = `<p>You are already logged in as ${username}.</p>`;
             loginFormContainer.style.display = 'none';
@@ -76,19 +76,34 @@
             body: JSON.stringify(requestData)
         })
             .then(response => {
-                if (!response.ok) { // Check if the response status is not OK (meaning an error)
+                if (!response.ok) {
                     console.error('Login failed:', response.status);
-                    return; // Stop further processing in the .then block
+                    alert("Error Logging in.");
+                    return;
                 }
-                return response.json(); // If the status is OK, parse the JSON
+                return response.json();
             })
             .then(data => {
                 console.log("Success", data);
-                sessionStorage.setItem("username", data.username);
-                sessionStorage.setItem("role", data.role);
-                alert('Log in successful');
-                document.getElementById("loginForm").reset();
-                window.location = '../index.html';
+                try {
+                    let userID;
+                    if (data.Input && typeof data.Input === 'object' && data.Input.userID) {
+                        userID = data.Input.userID;
+                        sessionStorage.setItem("userID", userID);
+                    } else {
+                        console.warn("Could not retrieve username from Input.");
+                    }
+
+                    const authTokenData = JSON.parse(data.Token);
+                    sessionStorage.setItem("role", authTokenData.role);
+                    sessionStorage.setItem("token", authTokenData.tokenID);
+                    alert('Log in successful');
+                    document.getElementById("loginForm").reset();
+                    window.location = '../index.html';
+                } catch (error) {
+                    console.error("Error parsing authToken:", error);
+                    alert("Login successful, but could not retrieve user information.");
+                }
             })
             .catch(error => {
                 console.error('Network error:', error);
