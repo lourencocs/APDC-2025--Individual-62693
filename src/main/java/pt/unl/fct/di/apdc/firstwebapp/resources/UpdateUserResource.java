@@ -3,8 +3,9 @@ package pt.unl.fct.di.apdc.firstwebapp.resources;
 import com.google.cloud.datastore.*;
 import com.google.gson.Gson;
 import org.apache.commons.codec.digest.DigestUtils;
-import pt.unl.fct.di.apdc.firstwebapp.util.AuthUtil; // Use AuthUtil
-import pt.unl.fct.di.apdc.firstwebapp.util.UpdateUserData; // Use UpdateUserData
+import pt.unl.fct.di.apdc.firstwebapp.util.AuthUtil;
+import pt.unl.fct.di.apdc.firstwebapp.util.UpdateUserData;
+import pt.unl.fct.di.apdc.firstwebapp.util.OpResult; // Import OpResult
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -19,10 +20,8 @@ public class UpdateUserResource {
 
     private static final Logger LOG = Logger.getLogger(UpdateUserResource.class.getName());
     private final Gson g = new Gson();
-    // Consistent Project ID
     private final Datastore datastore = DatastoreOptions.newBuilder().setProjectId("projetoadc-456513").build().getService();
 
-    // Consistent Field Names & Roles (Consider defining these in a shared constants class)
     private static final String KIND_USER = "User";
     private static final String FIELD_EMAIL = "user_email";
     private static final String FIELD_USERID = "user_id";
@@ -43,67 +42,61 @@ public class UpdateUserResource {
     private static final String ROLE_GBO = "GBO";
     private static final String ROLE_GA = "GA";
     private static final String ROLE_SU = "SU";
+    private static final String OPERATION_NAME = "OP6 - updateUserAttributes"; // Operation Name.
 
-    // Removed validateTokenAndGetUser - using AuthUtil
-
-    @POST // Or PUT might be semantically better for update
+    @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response updateUserAttributes(UpdateUserData data, @HeaderParam(HttpHeaders.AUTHORIZATION) String authHeader) {
 
         String tokenID = AuthUtil.extractTokenID(authHeader);
-        // Also remove authToken from UpdateUserData if it was added there
-        if (data == null || data.targetUsername == null || data.targetUsername.isEmpty()) {
-            return Response.status(Status.BAD_REQUEST).entity("Missing target username in request body.").build();
+        if (data == null || data.targetUserID == null || data.targetUserID.isEmpty()) {
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Missing target userID in request body.");
+            return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
         }
         if (tokenID == null) {
-            return Response.status(Status.BAD_REQUEST).entity("Missing Authorization Bearer token.").build();
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Missing Authorization Bearer token.");
+            return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
         }
-        LOG.fine("Attempting attribute update for target: " + data.targetUsername);
+        LOG.fine("Attempting attribute update for target: " + data.targetUserID);
 
-
-        // 1. Authentication
         Entity requestingUser = AuthUtil.validateToken(datastore, tokenID);
         if (requestingUser == null) {
             LOG.warning("Update request with invalid or expired token: " + tokenID);
-            return Response.status(Status.UNAUTHORIZED).entity("Invalid or expired token.").build();
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Invalid or expired token.");
+            return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }
         String requesterUsername = requestingUser.getKey().getName();
         String requesterRole = requestingUser.getString(FIELD_ROLE);
-        LOG.info("Update request received from user: " + requesterUsername + " (Role: " + requesterRole + ") for target: " + data.targetUsername);
+        LOG.info("Update request received from user: " + requesterUsername + " (Role: " + requesterRole + ") for target: " + data.targetUserID);
 
-        // 2. Authorization & Target Validation within a Transaction
         Transaction txn = datastore.newTransaction();
         try {
-            Key targetKey = datastore.newKeyFactory().setKind(KIND_USER).newKey(data.targetUsername);
+            Key targetKey = datastore.newKeyFactory().setKind(KIND_USER).newKey(data.targetUserID);
             Entity targetUser = txn.get(targetKey);
 
-            // Check if target user exists
             if (targetUser == null) {
                 txn.rollback();
-                LOG.warning("Update failed: Target user '" + data.targetUsername + "' not found.");
-                return Response.status(Status.NOT_FOUND).entity("Target user not found.").build();
+                LOG.warning("Update failed: Target user '" + data.targetUserID + "' not found.");
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Target user not found.");
+                return Response.status(Status.NOT_FOUND).entity(g.toJson(errorResult)).build();
             }
             String targetRole = targetUser.getString(FIELD_ROLE);
-            boolean isSelfModification = requesterUsername.equals(data.targetUsername);
+            boolean isSelfModification = requesterUsername.equals(data.targetUserID);
 
-            // Check role-based permission (can requester target this target role?)
             if (!UpdateUserData.canTarget(requesterRole, targetRole, isSelfModification)) {
                 txn.rollback();
-                LOG.warning("Authorization failed: User " + requesterUsername + " (Role: " + requesterRole +
-                        ") cannot modify user " + data.targetUsername + " (Role: " + targetRole + ").");
-                return Response.status(Status.FORBIDDEN).entity("User does not have permission to modify the target user.").build();
+                LOG.warning("Authorization failed: User " + requesterUsername + " (Role: " + requesterRole + ") cannot modify user " + data.targetUserID + " (Role: " + targetRole + ").");
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "User does not have permission to modify the target user.");
+                return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
             }
 
-            // 3. Attribute Update Logic
             Entity.Builder builder = Entity.newBuilder(targetUser);
             boolean modified = false;
 
-            // Apply changes based on rules - Using consistent field names
             if (data.profile != null) { builder.set(FIELD_PROFILE, data.profile); modified = true; }
             if (data.phone != null) { builder.set(FIELD_PHONE, data.phone); modified = true; }
             if (data.password != null && !data.password.isEmpty()) {
-                // Password complexity validation could be added here
                 builder.set(FIELD_PASSWORD, DigestUtils.sha512Hex(data.password)); modified = true;
             }
             if (data.isPublic != null) { builder.set(FIELD_IS_PUBLIC, data.isPublic); modified = true; }
@@ -113,27 +106,26 @@ public class UpdateUserResource {
             if (data.postalCode != null) { builder.set(FIELD_POSTAL_CODE, data.postalCode); modified = true; }
             if (data.NIF != null) { builder.set(FIELD_NIF, data.NIF); modified = true; }
 
-            // Privileged Attributes: Role
             if (data.role != null) {
-                if (isSelfModification) { // Users cannot change their own role
+                if (isSelfModification) {
                     txn.rollback();
                     LOG.warning("Attribute update failed: User " + requesterUsername + " attempted to change own role.");
-                    return Response.status(Status.FORBIDDEN).entity("Users cannot change their own role.").build();
+                    OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Users cannot change their own role.");
+                    return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
                 }
                 String newRole = data.role.toUpperCase();
-                // Validate new role value
-                if (!(newRole.equals(ROLE_USER) || newRole.equals(ROLE_GBO) || newRole.equals(ROLE_GA) || newRole.equals(ROLE_SU))) { // SU can be set by SU
+                if (!(newRole.equals(ROLE_USER) || newRole.equals(ROLE_GBO) || newRole.equals(ROLE_GA) || newRole.equals(ROLE_SU))) {
                     txn.rollback();
                     LOG.warning("Attribute update failed: Invalid role value provided: " + data.role);
-                    return Response.status(Status.BAD_REQUEST).entity("Invalid role value provided.").build();
+                    OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Invalid role value provided.");
+                    return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
                 }
-                // Check permission to set the role
                 boolean roleChangeAllowed = false;
-                if (requesterRole.equals(ROLE_SU)) { // SU can set any valid role including SU
+                if (requesterRole.equals(ROLE_SU)) {
                     roleChangeAllowed = true;
-                } else if (requesterRole.equals(ROLE_GA) && (newRole.equals(ROLE_GBO) || newRole.equals(ROLE_USER))) { // GA can set GBO or USER
+                } else if (requesterRole.equals(ROLE_GA) && (newRole.equals(ROLE_GBO) || newRole.equals(ROLE_USER))) {
                     roleChangeAllowed = true;
-                } else if (requesterRole.equals(ROLE_GBO) && newRole.equals(ROLE_USER)) { // GBO can only set USER
+                } else if (requesterRole.equals(ROLE_GBO) && newRole.equals(ROLE_USER)) {
                     roleChangeAllowed = true;
                 }
 
@@ -143,40 +135,40 @@ public class UpdateUserResource {
                 } else {
                     txn.rollback();
                     LOG.warning("Authorization failed: Role " + requesterRole + " cannot set target role to " + newRole);
-                    return Response.status(Status.FORBIDDEN).entity("Insufficient permission to set the requested role.").build();
+                    OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Insufficient permission to set the requested role.");
+                    return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
                 }
             }
 
-            // Privileged Attributes: State
             if (data.state != null) {
-                if (isSelfModification) { // Users cannot change their own state
+                if (isSelfModification) {
                     txn.rollback();
                     LOG.warning("Attribute update failed: User " + requesterUsername + " attempted to change own state.");
-                    return Response.status(Status.FORBIDDEN).entity("Users cannot change their own account state.").build();
+                    OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Users cannot change their own account state.");
+                    return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
                 }
-                // Only SU, GA, GBO can change state of others they can target
                 builder.set(FIELD_STATE, data.state);
                 modified = true;
             }
 
-            // Immutable fields (Email, Name, Username Key) are not handled here
-
-            // 4. Commit Transaction if modified
             if (modified) {
                 txn.put(builder.build());
                 txn.commit();
-                LOG.info("Successfully updated attributes for user: " + data.targetUsername + " by user: " + requesterUsername);
-                return Response.ok().entity("User attributes updated successfully.").build();
+                LOG.info("Successfully updated attributes for user: " + data.targetUserID + " by user: " + requesterUsername);
+                OpResult successResult = new OpResult(OPERATION_NAME, data, null, "User attributes updated successfully.");
+                return Response.ok(g.toJson(successResult)).build();
             } else {
                 txn.rollback();
-                LOG.info("No attributes were modified for user: " + data.targetUsername + " (request by " + requesterUsername + ")");
-                return Response.ok().entity("No attributes provided or no changes needed.").build();
+                LOG.info("No attributes were modified for user: " + data.targetUserID + " (request by " + requesterUsername + ")");
+                OpResult successResult = new OpResult(OPERATION_NAME, data, null, "No attributes provided or no changes needed.");
+                return Response.ok(g.toJson(successResult)).build();
             }
 
         } catch (Exception e) {
             if (txn.isActive()) txn.rollback();
-            LOG.severe("Error during attribute update for target " + data.targetUsername + ": " + e.getMessage());
-            return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Internal server error during attribute update.").build();
+            LOG.severe("Error during attribute update for target " + data.targetUserID + ": " + e.getMessage());
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Internal server error during attribute update.");
+            return Response.status(Status.INTERNAL_SERVER_ERROR).entity(g.toJson(errorResult)).build();
         } finally {
             if (txn.isActive()) txn.rollback();
         }

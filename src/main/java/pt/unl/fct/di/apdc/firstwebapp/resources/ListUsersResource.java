@@ -2,8 +2,8 @@ package pt.unl.fct.di.apdc.firstwebapp.resources;
 
 import com.google.cloud.datastore.*;
 import com.google.gson.Gson;
-// Remove ListData import if no longer needed
-import pt.unl.fct.di.apdc.firstwebapp.util.AuthUtil; // Use AuthUtil for validation
+import pt.unl.fct.di.apdc.firstwebapp.util.AuthUtil;
+import pt.unl.fct.di.apdc.firstwebapp.util.OpResult; // Import OpResult
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -23,10 +23,8 @@ public class ListUsersResource {
 
     private static final Logger LOG = Logger.getLogger(ListUsersResource.class.getName());
     private final Gson g = new Gson();
-    // Consistent Project ID
     private final Datastore datastore = DatastoreOptions.newBuilder().setProjectId("projetoadc-456513").build().getService();
 
-    // Consistent Field Names & Roles
     private static final String KIND_USER = "User";
     private static final String FIELD_EMAIL = "user_email";
     private static final String FIELD_USERNAME_DISPLAY = "user_name";
@@ -45,12 +43,9 @@ public class ListUsersResource {
     private static final String ROLE_GBO = "GBO";
     private static final String ROLE_GA = "GA";
     private static final String ROLE_SU = "SU";
-    private static final boolean STATE_ACTIVE = true; // Assuming true means ACTIVE
+    private static final boolean STATE_ACTIVE = true;
+    private static final String OPERATION_NAME = "OP6 - listUsers"; // Operation Name.
 
-    // Removed the placeholder token validation method
-
-
-    // Changed to GET, expecting token in header
     @GET
     @Path("/")
     public Response listUsers(@HeaderParam(HttpHeaders.AUTHORIZATION) String authHeader) {
@@ -58,29 +53,26 @@ public class ListUsersResource {
 
         String tokenID = AuthUtil.extractTokenID(authHeader);
         if (tokenID == null) {
-            return Response.status(Status.BAD_REQUEST).entity("Missing Authorization Bearer token.").build();
+            OpResult errorResult = new OpResult(OPERATION_NAME, null, null, "Missing Authorization Bearer token.");
+            return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
         }
 
-        // --- Authentication and Authorization ---
         Entity requestingUser = AuthUtil.validateToken(datastore, tokenID);
         if (requestingUser == null) {
             LOG.warning("List users request with invalid or expired token: " + tokenID);
-            // If token is invalid/expired, return 401 Unauthorized
-            return Response.status(Status.UNAUTHORIZED).entity("Invalid or expired token.").build();
+            OpResult errorResult = new OpResult(OPERATION_NAME, null, tokenID, "Invalid or expired token.");
+            return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }
         String requesterRole = requestingUser.getString(FIELD_ROLE);
         LOG.info("List users request by user: " + requestingUser.getKey().getName() + " with role: " + requesterRole);
 
-        // --- Query Datastore for Users ---
         Query<Entity> query = Query.newEntityQueryBuilder()
                 .setKind(KIND_USER)
-                // Add ordering if needed, e.g., .setOrderBy(StructuredQuery.OrderBy.asc(FIELD_USERNAME_DISPLAY))
                 .build();
 
-        QueryResults<Entity> results = datastore.run(query); // Run outside transaction for reads
+        QueryResults<Entity> results = datastore.run(query);
         List<Map<String, Object>> usersList = new ArrayList<>();
 
-        // --- Filter Results Based on Requester's Role ---
         while (results.hasNext()) {
             Entity targetUser = results.next();
             String targetUsername = targetUser.getKey().getName();
@@ -98,7 +90,6 @@ public class ListUsersResource {
                         userData = new HashMap<>();
                         userData.put("username", targetUsername);
                         userData.put(FIELD_EMAIL, targetUser.getString(FIELD_EMAIL));
-                        // Assuming 'nome' maps to 'user_name' or username key
                         userData.put("name", targetUser.contains(FIELD_USERNAME_DISPLAY) ? targetUser.getString(FIELD_USERNAME_DISPLAY) : targetUsername );
                     }
                     break;
@@ -109,20 +100,19 @@ public class ListUsersResource {
                     }
                     break;
                 case ROLE_GA:
-                    if (ROLE_USER.equals(targetRole) || ROLE_GBO.equals(targetRole)) { // GA sees USER, GBO
+                    if (ROLE_USER.equals(targetRole) || ROLE_GBO.equals(targetRole)) {
                         includeUser = true;
                         userData = entityToFullMap(targetUser, targetUsername);
                     }
                     break;
                 case ROLE_SU:
-                    // SU sees everyone (USER, GBO, GA, SU)
                     includeUser = true;
                     userData = entityToFullMap(targetUser, targetUsername);
                     break;
                 default:
                     LOG.warning("Unknown role encountered for requester: " + requesterRole);
-                    // Return Forbidden as the requester's role seems invalid
-                    return Response.status(Status.FORBIDDEN).entity("Internal role configuration error.").build();
+                    OpResult errorResult = new OpResult(OPERATION_NAME, null, tokenID, "Internal role configuration error.");
+                    return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
             }
 
             if (includeUser && userData != null) {
@@ -134,12 +124,11 @@ public class ListUsersResource {
         return Response.ok(g.toJson(usersList)).build();
     }
 
-    // Helper method remains largely the same, uses constants
     private Map<String, Object> entityToFullMap(Entity userEntity, String username) {
         Map<String, Object> map = new HashMap<>();
-        map.put("username", username); // Key
+        map.put("username", username);
         if (userEntity.contains(FIELD_USERNAME_DISPLAY)) map.put("name", userEntity.getString(FIELD_USERNAME_DISPLAY));
-        else map.put("name", username); // Fallback name to username key
+        else map.put("name", username);
 
         if (userEntity.contains(FIELD_EMAIL)) map.put(FIELD_EMAIL, userEntity.getString(FIELD_EMAIL));
         if (userEntity.contains(FIELD_PROFILE)) map.put(FIELD_PROFILE, userEntity.getString(FIELD_PROFILE));
@@ -152,7 +141,6 @@ public class ListUsersResource {
         if (userEntity.contains(FIELD_ADDRESS)) map.put(FIELD_ADDRESS, userEntity.getString(FIELD_ADDRESS));
         if (userEntity.contains(FIELD_POSTAL_CODE)) map.put(FIELD_POSTAL_CODE, userEntity.getString(FIELD_POSTAL_CODE));
         if (userEntity.contains(FIELD_NIF)) map.put(FIELD_NIF, userEntity.getString(FIELD_NIF));
-        // DO NOT INCLUDE FIELD_PASSWORD
         return map;
     }
 }

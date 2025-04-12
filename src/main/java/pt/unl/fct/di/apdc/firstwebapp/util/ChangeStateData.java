@@ -1,6 +1,5 @@
 package pt.unl.fct.di.apdc.firstwebapp.util;
 
-// Re-use role constants if defined in a shared place, otherwise define/import them
 import static pt.unl.fct.di.apdc.firstwebapp.util.ChangeRoleData.ROLE_SU;
 import static pt.unl.fct.di.apdc.firstwebapp.util.ChangeRoleData.ROLE_GA;
 import static pt.unl.fct.di.apdc.firstwebapp.util.ChangeRoleData.ROLE_GBO;
@@ -8,29 +7,29 @@ import static pt.unl.fct.di.apdc.firstwebapp.util.ChangeRoleData.ROLE_USER;
 
 public class ChangeStateData {
 
-    public String usernameOne; // User initiating the change
-    public String usernameTwo; // User whose state is to be changed
+    public String userID1; // User initiating the change
+    public String userID2; // User whose state is to be changed
 
     public ChangeStateData() {
         // Default constructor for JSON deserialization
     }
 
-    public ChangeStateData(String user1, String user2) {
-        this.usernameOne = user1;
-        this.usernameTwo = user2;
+    public ChangeStateData(String userID1, String userID2) {
+        this.userID1 = userID1;
+        this.userID2 = userID2;
     }
 
     /**
-     * Checks if the provided data is minimally valid (non-empty usernames).
+     * Checks if the provided data is minimally valid (non-empty userIDs).
      * @return true if data is valid, false otherwise.
      */
     public boolean isValid() {
-        return usernameOne != null && !usernameOne.trim().isEmpty() &&
-                usernameTwo != null && !usernameTwo.trim().isEmpty();
+        return userID1 != null && !userID1.trim().isEmpty() &&
+                userID2 != null && !userID2.trim().isEmpty();
     }
 
     /**
-     * Determines if userOne is authorized to change userTwo's state.
+     * Determines if userID1 is authorized to change userID2's state.
      * Assumes userOneRole and userTwoRole are the *current* roles from the database.
      * Role comparisons are case-insensitive.
      * @param userOneRole Current role of the initiating user.

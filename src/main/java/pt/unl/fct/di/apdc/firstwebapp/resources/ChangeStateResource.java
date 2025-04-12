@@ -4,9 +4,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -14,114 +16,123 @@ import jakarta.ws.rs.core.Response.Status;
 import com.google.cloud.datastore.*;
 import com.google.gson.Gson;
 
-// Import the refactored data class
 import pt.unl.fct.di.apdc.firstwebapp.util.ChangeStateData;
-// Assuming role constants might be needed if checking roles directly here later
-// import static pt.unl.fct.di.apdc.firstwebapp.util.ChangeRoleData.*;
+import pt.unl.fct.di.apdc.firstwebapp.util.OpResult;
+import pt.unl.fct.di.apdc.firstwebapp.util.AuthUtil;
 
 @Path("/changestate")
 @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
 public class ChangeStateResource {
 
-    private final Gson g = new Gson(); // For potential JSON responses
-    private static final Logger LOG = Logger.getLogger(ChangeStateResource.class.getName()); // Correct logger name
-
-    // Consider managing Datastore client more centrally (e.g., ServletContext, Dependency Injection)
+    private final Gson g = new Gson();
+    private static final Logger LOG = Logger.getLogger(ChangeStateResource.class.getName());
     private final Datastore datastore = DatastoreOptions.newBuilder()
-            .setProjectId("projetoadc-456513") // Ensure this project ID is correct
+            .setProjectId("projetoadc-456513")
             .build()
             .getService();
 
-    public ChangeStateResource() {} // Public constructor for JAX-RS
+    private static final String OPERATION_NAME = "OP3 - changeState";
+
+    public ChangeStateResource() {}
 
     @POST
-    @Path("/") // Consider making path more specific if needed e.g. "/toggle"
+    @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response changeState(ChangeStateData data) {
+    public Response changeState(ChangeStateData data, @HeaderParam(HttpHeaders.AUTHORIZATION) String authHeader) {
 
-        // 1. Initial Input Validation
         if (data == null || !data.isValid()) {
-            LOG.warning("Change state attempt with invalid data (missing usernames).");
-            return Response.status(Status.BAD_REQUEST)
-                    .entity("Invalid or missing input data. Usernames must be provided.")
-                    .build();
+            LOG.warning("Change state attempt with invalid data (missing userIDs).");
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Invalid or missing input data. UserIDs must be provided.");
+            return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
         }
 
-        LOG.fine("Attempting state change: User '" + data.usernameOne + "' wants to toggle state for user '" + data.usernameTwo + "'.");
+        LOG.fine("Attempting state change: User '" + data.userID1 + "' wants to toggle state for user '" + data.userID2 + "'.");
+
+        // Token Validation
+        String tokenID = AuthUtil.extractTokenID(authHeader);
+        if (tokenID == null) {
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Missing or invalid token.");
+            return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
+        }
+
+        Key tokenKey = datastore.newKeyFactory().setKind(AuthUtil.AUTH_TOKEN_KIND).newKey(tokenID);
+        Entity tokenEntity = datastore.get(tokenKey);
+
+        if (tokenEntity == null) {
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Token not found.");
+            return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
+        }
+
+        long expirationDate = tokenEntity.getLong("expiration_date");
+        if (expirationDate < System.currentTimeMillis()) {
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Token expired.");
+            return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
+        }
+
+        String loggedInUsername = tokenEntity.getString("user_username");
+
+        if (!loggedInUsername.equals(data.userID1)) {
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Unauthorized: Token does not match initiating user.");
+            return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
+        }
 
         Transaction txn = datastore.newTransaction();
         try {
-            Key userOneKey = datastore.newKeyFactory().setKind("User").newKey(data.usernameOne);
-            Key userTwoKey = datastore.newKeyFactory().setKind("User").newKey(data.usernameTwo);
+            Key userOneKey = datastore.newKeyFactory().setKind("User").newKey(data.userID1);
+            Key userTwoKey = datastore.newKeyFactory().setKind("User").newKey(data.userID2);
 
-            // Fetch both entities within the transaction
             Entity userOne = txn.get(userOneKey);
             Entity userTwo = txn.get(userTwoKey);
 
-            // 2. Check if users exist
             if (userOne == null) {
-                txn.rollback(); // No need to proceed
-                LOG.warning("Change state failed: Initiating user not found (" + data.usernameOne + ").");
-                // Usually return NOT_FOUND, but if the *initiator* must exist to even try, FORBIDDEN could be argued. Let's stick to NOT_FOUND for consistency.
-                return Response.status(Status.NOT_FOUND)
-                        .entity("Initiating user (" + data.usernameOne + ") not found.")
-                        .build();
+                txn.rollback();
+                LOG.warning("Change state failed: Initiating user not found (" + data.userID1 + ").");
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Initiating user (" + data.userID1 + ") not found.");
+                return Response.status(Status.NOT_FOUND).entity(g.toJson(errorResult)).build();
             }
             if (userTwo == null) {
-                txn.rollback(); // No need to proceed
-                LOG.warning("Change state failed: Target user not found (" + data.usernameTwo + ").");
-                return Response.status(Status.NOT_FOUND)
-                        .entity("Target user (" + data.usernameTwo + ") not found.")
-                        .build();
+                txn.rollback();
+                LOG.warning("Change state failed: Target user not found (" + data.userID2 + ").");
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Target user (" + data.userID2 + ") not found.");
+                return Response.status(Status.NOT_FOUND).entity(g.toJson(errorResult)).build();
             }
 
-            // Retrieve current roles and target's state
             String userOneRole = userOne.getString("user_role");
             String userTwoRole = userTwo.getString("user_role");
-            boolean userTwoCurrentState = userTwo.getBoolean("user_state"); // Get current state
+            boolean userTwoCurrentState = userTwo.getBoolean("user_state");
 
-            // 3. Authorization Check
             if (!data.authorizeStateChange(userOneRole, userTwoRole)) {
-                txn.rollback(); // Rollback before returning
-                LOG.warning("Authorization failed: User " + data.usernameOne + " (Role: " + userOneRole +
-                        ") cannot change state for user " + data.usernameTwo + " (Role: " + userTwoRole + ")");
-                return Response.status(Status.FORBIDDEN) // Use FORBIDDEN for authorization issues
-                        .entity("User " + data.usernameOne + " is not authorized to change the state of user " + data.usernameTwo + ".")
-                        .build();
+                txn.rollback();
+                LOG.warning("Authorization failed: User " + data.userID1 + " (Role: " + userOneRole + ") cannot change state for user " + data.userID2 + " (Role: " + userTwoRole + ")");
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "User " + data.userID1 + " is not authorized to change the state of user " + data.userID2 + ".");
+                return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
             }
 
-            // 4. Perform the Update - **CRITICAL FIX HERE**
-            boolean newUserTwoState = !userTwoCurrentState; // Calculate the new state (toggle)
+            boolean newUserTwoState = !userTwoCurrentState;
 
-            // Rebuild the entity, copying all properties and setting the new state
-            Entity.Builder builder = Entity.newBuilder(userTwoKey); // Use the Key!
-
-            // Copy all existing properties from userTwo to the builder
+            Entity.Builder builder = Entity.newBuilder(userTwoKey);
             userTwo.getProperties().forEach(builder::set);
-
-            // Set the new state
             builder.set("user_state", newUserTwoState);
-
-            // Build the final entity
             Entity updatedUserTwo = builder.build();
 
-            txn.put(updatedUserTwo); // Put the complete updated entity
+            txn.put(updatedUserTwo);
             txn.commit();
 
-            LOG.info("Successfully changed state of user '" + data.usernameTwo + "' to " +
-                    (newUserTwoState ? "ACTIVE" : "INACTIVE") + " by user '" + data.usernameOne + "'.");
-            return Response.ok("Successfully updated state for user: " + data.usernameTwo + " to " + (newUserTwoState ? "ACTIVE" : "INACTIVE")).build();
+            LOG.info("Successfully changed state of user '" + data.userID2 + "' to " + (newUserTwoState ? "ACTIVE" : "INACTIVE") + " by user '" + data.userID1 + "'.");
+            OpResult successResult = new OpResult(OPERATION_NAME, data, tokenID, "Successfully updated state for user: " + data.userID2 + " to " + (newUserTwoState ? "ACTIVE" : "INACTIVE"));
+            return Response.ok(g.toJson(successResult)).build();
 
         } catch (DatastoreException e) {
             if (txn.isActive()) txn.rollback();
             LOG.log(Level.SEVERE, "Datastore error during state change: " + e.getMessage(), e);
-            return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Datastore error during state change.").build();
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Datastore error during state change.");
+            return Response.status(Status.INTERNAL_SERVER_ERROR).entity(g.toJson(errorResult)).build();
         } catch (Exception e) {
             if (txn.isActive()) txn.rollback();
             LOG.log(Level.SEVERE, "Unexpected error during state change: " + e.getMessage(), e);
-            return Response.status(Status.INTERNAL_SERVER_ERROR).entity("An unexpected error occurred.").build();
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "An unexpected error occurred.");
+            return Response.status(Status.INTERNAL_SERVER_ERROR).entity(g.toJson(errorResult)).build();
         } finally {
-            // Just ensure rollback if transaction is still active
             if (txn.isActive()) {
                 LOG.warning("Transaction was still active in finally block, rolling back.");
                 txn.rollback();
