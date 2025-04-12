@@ -13,9 +13,7 @@ public class RootUserInitializer implements ServletContextListener {
     private final Datastore datastore;
 
     public RootUserInitializer() {
-        // Explicitly configure DatastoreOptions for the emulator
         DatastoreOptions options = DatastoreOptions.newBuilder()
-                .setHost("localhost:8081") // Or your emulator's host:port
                 .setProjectId("projetoadc-456513") // Or your project ID
                 .build();
         datastore = options.getService();
