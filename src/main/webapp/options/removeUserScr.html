@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>Remove User</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+</head>
+
+<body>
+<div class="sidebar">
+    <ul>
+        <li>
+            <a href="../index.html">
+                <span class="nav-item">Main Page</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div id="roleStatus"></div> <form method="post" id="removeForm">
+    <fieldset>
+        <legend>Remove User</legend>
+        <p>
+            <label for="targetUserID">User ID to Remove:</label>
+            <input type="text" name="targetUserID" id="targetUserID" required/>
+        </p>
+        <p>
+            <input type="submit" value="Remove User"/>
+            <input type="reset"/>
+        </p>
+    </fieldset>
+</form>
+</div>
+</body>
+
+<script>
+    const roleStatus = document.getElementById('roleStatus');
+    const form = document.querySelector("#removeForm");
+
+    // Simplified function as requested
+    function displayCurrentUserRole() {
+        const userID = sessionStorage.getItem("userID"); // Needed to check if logged in
+        const role = sessionStorage.getItem("role");
+
+        if (userID && role) {
+            // If logged in, just show the role
+            roleStatus.innerHTML = `<p>Your role: ${role}</p>`;
+        } else {
+            // If not logged in, just show "No user logged in" and hide the form
+            roleStatus.innerHTML = `<p>No user logged in</p>`;
+            const removeForm = document.getElementById('removeForm');
+            if (removeForm) {
+                removeForm.style.display = 'none';
+            }
+        }
+    }
+
+    displayCurrentUserRole(); // Display role/status on page load
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitRemoveForm();
+    });
+
+    function submitRemoveForm() {
+        const loggedInUsername = sessionStorage.getItem("userID");
+        const token = sessionStorage.getItem("token");
+        const targetUserID = document.getElementById('targetUserID').value;
+
+        if (!loggedInUsername || !token) {
+            alert("You must be logged in to remove users.");
+            return;
+        }
+
+        if (!targetUserID) {
+            alert("Please enter the User ID of the user you want to remove.");
+            return;
+        }
+
+        var requestData = {
+            "userID1": loggedInUsername,
+            "userID2": targetUserID
+        };
+
+        fetch('../../rest/remove/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log("Success removing user");
+                    alert('User removed successfully');
+                    document.getElementById("removeForm").reset();
+
+                    if (loggedInUsername.toUpperCase() === targetUserID.toUpperCase()) {
+                        console.log("User removed self, redirecting to logout screen.");
+
+                        sessionStorage.clear();
+                        window.location.href = 'logoutScr.html';
+                    } else {
+                        console.log("Removed another user, redirecting to main menu.");
+                        window.location.href = '../index.html';
+                    }
+                } else {
+                    response.text().then(text => {
+                        let errorMsg = `Error removing user.`;
+                        alert(errorMsg);
+                        console.error('Failed to remove user', response.status, text);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                alert("Error communicating with the server while removing user.");
+            });
+    };
+</script>
+</html>

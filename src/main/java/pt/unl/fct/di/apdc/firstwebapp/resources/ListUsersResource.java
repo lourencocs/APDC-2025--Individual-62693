@@ -77,7 +77,6 @@ public class ListUsersResource {
             Entity targetUser = results.next();
             String targetUsername = targetUser.getKey().getName();
             String targetRole = targetUser.getString(FIELD_ROLE);
-            boolean targetIsPublic = targetUser.contains(FIELD_IS_PUBLIC) && targetUser.getBoolean(FIELD_IS_PUBLIC);
             boolean targetIsActive = targetUser.contains(FIELD_STATE) && targetUser.getBoolean(FIELD_STATE);
 
             boolean includeUser = false;
@@ -85,6 +84,7 @@ public class ListUsersResource {
 
             switch (requesterRole) {
                 case ROLE_USER:
+                    boolean targetIsPublic = targetUser.getString(FIELD_PROFILE).equalsIgnoreCase("public");
                     if (ROLE_USER.equals(targetRole) && targetIsPublic && targetIsActive) {
                         includeUser = true;
                         userData = new HashMap<>();

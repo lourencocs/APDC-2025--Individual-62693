@@ -48,7 +48,7 @@ public class RegisterResource {
         LOG.fine("Register attempt by user: " + data.userID);
 
         if (!data.validRegistration()) {
-            return Response.status(Status.BAD_REQUEST).entity("Missing or empty required parameter (userID, username, name, email, phone, password).").build();
+            return Response.status(Status.BAD_REQUEST).entity("Missing or empty required parameter (userID, name, email, phone, password).").build();
         }
         if (!isValidEmail(data.email)) {
             return Response.status(Status.BAD_REQUEST).entity("Invalid email format.").build();
@@ -74,7 +74,7 @@ public class RegisterResource {
                         .set(FIELD_PASSWORD, DigestUtils.sha512Hex(data.password))
                         .set(FIELD_ROLE, DEFAULT_ROLE)
                         .set(FIELD_STATE, DEFAULT_STATE)
-                        .set(FIELD_PROFILE, data.profile != null ? data.profile : "")
+                        .set(FIELD_PROFILE, data.profile != null ? data.profile : "public")
                         .set(FIELD_OCCUPATION, data.occupation != null ? data.occupation : "")
                         .set(FIELD_WORKPLACE, data.workplace != null ? data.workplace : "")
                         .set(FIELD_ADDRESS, data.address != null ? data.address : "")
@@ -113,9 +113,14 @@ public class RegisterResource {
         return Pattern.matches(emailRegex, email);
     }
 
+    /**
+     * Password has at least 1 number, 1 lowercase and 1 uppercase letter.
+     * @param password password input
+     * @return true if it passes the requirements, false otherwise.
+     */
     private boolean isValidPassword(String password) {
         if (password == null) return false;
-        String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$";
+        String passwordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$";
         return Pattern.matches(passwordRegex, password);
     }
 }

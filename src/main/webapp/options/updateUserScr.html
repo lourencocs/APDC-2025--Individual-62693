@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>Update User Attributes</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+</head>
+
+<body>
+<div class="sidebar">
+    <ul>
+        <li>
+            <a href="../index.html">
+                <span class="nav-item">Main Page</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div id="roleStatus"></div>
+    <form method="post" id="updateUserForm">
+        <fieldset>
+            <legend>Update User Attributes</legend>
+            <p>
+                <label for="targetUserID">User ID to Update:</label>
+                <input type="text" name="targetUserID" id="targetUserID" required/>
+                <small>(Enter your own ID to update your profile)</small>
+            </p>
+            <p>
+                <label for="profile">Profile Visibility:</label>
+                <select name="profile" id="profile">
+                    <option value="">(Leave unchanged)</option>
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                </select>
+            </p>
+            <p>
+                <label for="phone">Phone Number:</label>
+                <input type="tel" name="phone" id="phone" />
+                <small>(Leave blank to keep unchanged)</small>
+            </p>
+            <p>
+                <input type="submit" value="Update Attributes"/>
+                <input type="reset"/>
+            </p>
+        </fieldset>
+    </form>
+</div>
+</body>
+
+<script>
+    const roleStatus = document.getElementById('roleStatus');
+    const form = document.querySelector("#updateUserForm");
+
+    function displayCurrentUserRole() {
+        const userID = sessionStorage.getItem("userID");
+        const role = sessionStorage.getItem("role");
+
+        if (userID && role) {
+            roleStatus.innerHTML = `<p>Your role: ${role}</p>`;
+            // Pre-fill targetUserID if user likely wants to edit themselves
+            document.getElementById('targetUserID').value = userID;
+        } else {
+            roleStatus.innerHTML = `<p>No user logged in</p>`;
+            if (form) {
+                form.style.display = 'none';
+            }
+        }
+    }
+
+    displayCurrentUserRole();
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitUpdateForm();
+    });
+
+    function submitUpdateForm() {
+        const loggedInUsername = sessionStorage.getItem("userID");
+        const token = sessionStorage.getItem("token");
+        const targetUserID = document.getElementById('targetUserID').value;
+        const profileValue = document.getElementById('profile').value;
+        const phoneValue = document.getElementById('phone').value.trim(); // Trim whitespace
+
+        if (!loggedInUsername || !token) {
+            alert("You must be logged in to update attributes.");
+            return;
+        }
+        if (!targetUserID) {
+            alert("Please enter the User ID of the user you want to update.");
+            return;
+        }
+
+        // Construct data object - only include fields that have a value
+        const requestData = {
+            targetUserID: targetUserID
+        };
+        if (profileValue) { // Only add if not the default empty value
+            requestData.profile = profileValue;
+        }
+        if (phoneValue) { // Only add if not blank
+            requestData.phone = phoneValue;
+        }
+        // Add other fields similarly...
+        // Example for a potential boolean field (like isPublic, if you add a checkbox)
+        // const isPublicCheckbox = document.getElementById('isPublic');
+        // if (isPublicCheckbox && isPublicCheckbox.checked !== /* original value or always send */) {
+        //     requestData.isPublic = isPublicCheckbox.checked;
+        // }
+
+
+        // Check if any data to update was actually provided besides targetUserID
+        if (Object.keys(requestData).length <= 1) {
+            alert("Please provide at least one attribute to update (e.g., Profile or Phone).");
+            return;
+        }
+
+
+        fetch('../../rest/updateuser/', { // Endpoint for updating user
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                // Try to parse JSON regardless of response.ok to get OpResult message
+                return response.json().then(data => ({ ok: response.ok, status: response.status, data }));
+            })
+            .then(({ ok, status, data }) => {
+                // data should be the OpResult object from the backend
+                const message = data?.message || (ok ? "Update successful." : `Error: ${status}`);
+                alert(message); // Show backend message
+
+                if (ok) {
+                    console.log("Success updating user attributes:", data);
+                    // Reset only fields, not target ID if user edited self
+                    if (loggedInUsername.toUpperCase() === targetUserID.toUpperCase()) {
+                        document.getElementById('profile').value = "";
+                        document.getElementById('phone').value = "";
+                        // Reset other fields you added
+                    } else {
+                        form.reset(); // Reset fully if editing someone else
+                    }
+                    // Optionally redirect
+                    // window.location.href = '../index.html';
+                } else {
+                    console.error('Failed to update user attributes', status, data);
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                alert("Error communicating with the server while updating attributes.");
+            });
+    };
+</script>
+</html>

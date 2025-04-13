@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>Token Details</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+</head>
+
+<body>
+<div class="sidebar">
+    <ul>
+        <li>
+            <a href="../index.html">
+                <span class="nav-item">Main Page</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div id="roleStatus"></div>
+    <h2>Your Current Token Details</h2>
+    <div id="tokenDetailsContainer">
+        <div id="tokenDetails">
+            <p>Loading token details...</p>
+        </div>
+        <p id="errorMessage" style="color: red; display: none;"></p>
+        <button id="reloadButton">Reload Token Info</button> </div>
+</div>
+</body>
+
+<script>
+    const roleStatus = document.getElementById('roleStatus');
+    const tokenDetailsContainer = document.getElementById('tokenDetailsContainer');
+    const tokenDetailsDiv = document.getElementById('tokenDetails');
+    const errorMessage = document.getElementById('errorMessage');
+    const reloadButton = document.getElementById('reloadButton');
+
+    function displayCurrentUserRole() {
+        const userID = sessionStorage.getItem("userID");
+        const role = sessionStorage.getItem("role");
+
+        if (userID && role) {
+            roleStatus.innerHTML = `<p>Your role: ${role}</p>`;
+            loadTokenDetails(); // Load details automatically if logged in
+        } else {
+            roleStatus.innerHTML = `<p>No user logged in</p>`;
+            if (tokenDetailsContainer) {
+                tokenDetailsContainer.style.display = 'none';
+            }
+        }
+    }
+
+    function formatTimestamp(timestampMillis) {
+        if (!timestampMillis) return 'N/A';
+        try {
+            return new Date(timestampMillis).toLocaleString();
+        } catch (e) {
+            return 'Invalid Date';
+        }
+    }
+
+    function loadTokenDetails() {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
+            errorMessage.textContent = "Authentication token not found. Please log in again.";
+            errorMessage.style.display = 'block';
+            tokenDetailsDiv.innerHTML = ''; // Clear loading message
+            return;
+        }
+
+        tokenDetailsDiv.innerHTML = '<p>Loading token details...</p>';
+        errorMessage.style.display = 'none';
+
+        fetch('../../rest/token/show', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(response => {
+                return response.json().then(opResult => ({ ok: response.ok, status: response.status, opResult }));
+            })
+            .then(({ ok, status, opResult }) => {
+                const message = opResult?.message || (ok ? "Token details loaded." : `Error: ${status}`);
+
+                if (ok && opResult?.operationResult === "OK" && opResult?.result) {
+                    console.log("Success loading token details:", opResult);
+                    const tokenData = opResult.result; // Extract AuthToken data
+
+                    tokenDetailsDiv.innerHTML = `
+                    <p><strong>Username:</strong> ${tokenData.username || 'N/A'}</p>
+                    <p><strong>Token ID:</strong> ${tokenData.tokenID || 'N/A'}</p>
+                    <p><strong>Role:</strong> ${tokenData.role || 'N/A'}</p>
+                    <p><strong>Created:</strong> ${formatTimestamp(tokenData.creationDate)}</p>
+                    <p><strong>Expires:</strong> ${formatTimestamp(tokenData.expirationDate)}</p>
+                    `;
+                    errorMessage.style.display = 'none';
+                } else {
+                    console.error('Failed to load token details', status, opResult);
+                    tokenDetailsDiv.innerHTML = '';
+                    errorMessage.textContent = message || `Failed to load token details. Status: ${status}`;
+                    errorMessage.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                tokenDetailsDiv.innerHTML = '';
+                errorMessage.textContent = "Error communicating with the server while loading token details.";
+                errorMessage.style.display = 'block';
+            });
+    }
+
+    // Add event listener for the reload button
+    reloadButton.addEventListener('click', loadTokenDetails);
+
+    // Initial setup
+    displayCurrentUserRole();
+
+</script>
+</html>

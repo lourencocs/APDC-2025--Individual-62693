@@ -1,5 +1,6 @@
 package pt.unl.fct.di.apdc.firstwebapp.listeners;
 
+import com.google.cloud.Timestamp;
 import com.google.cloud.datastore.*;
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -33,6 +34,13 @@ public class RootUserInitializer implements ServletContextListener {
                         .set("user_pwd", DigestUtils.sha512Hex("rootPassword"))
                         .set("user_role", "SU")
                         .set("user_state", true)
+                        .set("user_profile", "private")
+                        .set("occupation", "")
+                        .set("workplace", "")
+                        .set("address", "")
+                        .set("postal_Code", "")
+                        .set("NIF", "")
+                        .set("user_creation_time", Timestamp.now())
                         .build();
                 txn.add(user);
                 txn.commit();

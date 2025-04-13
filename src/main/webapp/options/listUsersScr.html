@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>List Users</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
+</head>
+
+<body>
+<div class="sidebar">
+    <ul>
+        <li>
+            <a href="../index.html">
+                <span class="nav-item">Main Page</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div id="roleStatus"></div> <h2>User List</h2>
+    <div id="userListContainer">
+        <table id="userListTable">
+            <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+            </tr>
+            </thead>
+            <tbody id="userListBody">
+            </tbody>
+        </table>
+        <p id="loadingMessage" style="display: none;">Loading users...</p>
+        <p id="errorMessage" style="color: red; display: none;"></p>
+    </div>
+</div>
+</body>
+
+<script>
+    const roleStatus = document.getElementById('roleStatus');
+    const userListContainer = document.getElementById('userListContainer');
+    const userListBody = document.getElementById('userListBody');
+    const loadingMessage = document.getElementById('loadingMessage');
+    const errorMessage = document.getElementById('errorMessage');
+
+    function displayCurrentUserRole() {
+        const userID = sessionStorage.getItem("userID");
+        const role = sessionStorage.getItem("role");
+
+        if (userID && role) {
+            roleStatus.innerHTML = `<p>Your role: ${role}</p>`;
+            loadUserList();
+        } else {
+            roleStatus.innerHTML = `<p>No user logged in</p>`;
+            if (userListContainer) {
+                userListContainer.style.display = 'none';
+            }
+        }
+    }
+
+    function loadUserList() {
+        const token = sessionStorage.getItem("token");
+
+        loadingMessage.style.display = 'block'; // Show loading indicator
+        errorMessage.style.display = 'none';   // Hide previous errors
+        userListBody.innerHTML = '';           // Clear previous table data
+
+        fetch('../../rest/listusers/', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+            .then(response => {
+                loadingMessage.style.display = 'none';
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    return response.text().then(text => {
+                        let errorMsg = `Error fetching users.`;
+                        throw new Error(errorMsg);
+                    });
+                }
+            })
+            .then(users => {
+                populateUserTable(users);
+            })
+            .catch(error => {
+                loadingMessage.style.display = 'none'; // Hide loading indicator
+                console.error('Failed to load users:', error);
+                errorMessage.textContent = error.message || "An error occurred while fetching the user list.";
+                errorMessage.style.display = 'block';
+            });
+    }
+
+    function populateUserTable(users) {
+        userListBody.innerHTML = '';
+
+        if (!users || users.length === 0) {
+            const row = userListBody.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 4;
+            cell.textContent = 'No users to display.';
+            cell.style.textAlign = 'center';
+            return;
+        }
+
+        const keysToShow = ['username', 'name', 'user_email', 'user_role'];
+
+        users.forEach(user => {
+            const row = userListBody.insertRow();
+            keysToShow.forEach(key => {
+                const cell = row.insertCell();
+                cell.textContent = user[key] !== null && user[key] !== undefined ? user[key] : 'N/A';
+            });
+            if (user.state !== undefined) {
+                 const cell = row.insertCell();
+                 cell.textContent = user.state ? 'Active' : 'Inactive';
+            }
+        });
+    }
+
+    displayCurrentUserRole();
+
+</script>
+</html>
