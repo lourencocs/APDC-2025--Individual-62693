@@ -2,23 +2,20 @@ package pt.unl.fct.di.apdc.firstwebapp.util;
 
 public class PasswordChangeData {
 
-    public String authToken;
     public String currentPassword;
     public String newPassword;
     public String newPasswordConfirmation;
 
     public PasswordChangeData() {}
 
-    public PasswordChangeData(String authToken, String currentPassword, String newPassword, String newPasswordConfirmation) {
-        this.authToken = authToken;
+    public PasswordChangeData( String currentPassword, String newPassword, String newPasswordConfirmation) {
         this.currentPassword = currentPassword;
         this.newPassword = newPassword;
         this.newPasswordConfirmation = newPasswordConfirmation;
     }
 
     public boolean validPasswordChange() {
-        return authToken != null && !authToken.isEmpty() &&
-                currentPassword != null && !currentPassword.isEmpty() &&
+        return currentPassword != null && !currentPassword.isEmpty() &&
                 newPassword != null && !newPassword.isEmpty() &&
                 newPassword.equals(newPasswordConfirmation);
     }

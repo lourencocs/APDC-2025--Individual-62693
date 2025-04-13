@@ -31,22 +31,21 @@ public class ChangePasswordResource {
     public Response changePassword(PasswordChangeData data, @HeaderParam(HttpHeaders.AUTHORIZATION) String authHeader) {
 
         String tokenID = AuthUtil.extractTokenID(authHeader);
-        if (tokenID == null && (data == null || data.authToken == null)) {
+        if (tokenID == null) {
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Missing Authorization token (Header or Body).");
             return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
         }
-        String effectiveTokenID = (tokenID != null) ? tokenID : data.authToken;
 
-        LOG.fine("Password change attempt via token: " + effectiveTokenID);
+        LOG.fine("Password change attempt via token: " + tokenID);
 
         if (data == null || !data.validPasswordChange()) {
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Missing parameters, or new passwords do not match.");
             return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
         }
 
-        Entity user = AuthUtil.validateToken(datastore, effectiveTokenID);
+        Entity user = AuthUtil.validateToken(datastore, tokenID);
         if (user == null) {
-            LOG.warning("Password change request with invalid or expired token: " + effectiveTokenID);
+            LOG.warning("Password change request with invalid or expired token: " + tokenID);
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Invalid or expired token.");
             return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }

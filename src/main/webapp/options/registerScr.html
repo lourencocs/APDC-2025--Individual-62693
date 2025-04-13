@@ -42,8 +42,16 @@
                 <input type="password" name="password" id="password" placeholder="Required" required/>
             </p>
             <p>
+                <label for="passwordConfirmation">Confirm Password:</label>
+                <input type="password" name="passwordConfirmation" id="passwordConfirmation" placeholder="Required" required/>
+            </p>
+            <p>
                 <label for="profile">Profile:</label>
-                <input type="text" name="profile" id="profile" placeholder="Optional"/>
+                <select name="profile" id="profile" required>
+                    <option value="" disabled selected>Select an option</option>
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                </select>
             </p>
             <p>
                 <label for="occupation">Occupation:</label>
@@ -66,7 +74,15 @@
                 <input type="text" name="NIF" id="NIF" placeholder="Optional"/>
             </p>
             <p>
-                <input type="submit" onclick="submitForm()"/>
+                <label for="citizenCardNumber">Citizen Card Number:</label>
+                <input type="text" name="citizenCardNumber" id="citizenCardNumber" placeholder="Optional"/>
+            </p>
+            <p>
+                <label for="employerNIF">Employer NIF:</label>
+                <input type="text" name="employerNIF" id="employerNIF" placeholder="Optional"/>
+            </p>
+            <p>
+                <input type="submit" />
                 <input type="reset"/>
             </p>
         </fieldset>
@@ -89,12 +105,15 @@
         var email = document.getElementById('email').value;
         var phone = document.getElementById('phone').value;
         var password = document.getElementById('password').value;
+        var passwordConfirmation = document.getElementById('passwordConfirmation').value;
         var profile = document.getElementById('profile').value;
         var occupation = document.getElementById('occupation').value;
         var workplace = document.getElementById('workplace').value;
         var address = document.getElementById('address').value;
         var postalCode = document.getElementById('postalCode').value;
         var NIF = document.getElementById('NIF').value;
+        var citizenCardNumber = document.getElementById('citizenCardNumber').value;
+        var employerNIF = document.getElementById('employerNIF').value;
 
         var requestData = {
             "userID": userID,
@@ -102,12 +121,15 @@
             "email": email,
             "phone": phone,
             "password": password,
+            "passwordConfirmation": passwordConfirmation,
             "profile": profile,
             "occupation": occupation,
             "workplace": workplace,
             "address": address,
             "postalCode": postalCode,
-            "NIF": NIF
+            "NIF": NIF,
+            "citizenCardNumber": citizenCardNumber,
+            "employerNIF": employerNIF
         };
 
         fetch('../../rest/register/', {
@@ -120,16 +142,18 @@
             .then(response => {
                 if (response.ok) {
                     console.log("Success");
-                    alert('Registration successful');
+                    alert('Registration successful!');
                     document.getElementById("registerForm").reset();
                     window.location = '../index.html';
                 } else {
-                    alert("Error Signing up. User ID already exists or invalid data.");
-                    throw new Error('Failed to register');
+                    return response.json().then(errorData => {
+                        alert('Error: ' + errorData);
+                    });
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                alert('An unexpected error occurred.');
             });
     }
 </script>

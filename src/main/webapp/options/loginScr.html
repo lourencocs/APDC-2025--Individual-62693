@@ -19,17 +19,19 @@
             <fieldset>
                 <legend>Enter Your User Info</legend>
                 <p>
-                    <label for="userID">User ID:</label>
-                    <input type="text" name="userID" id="userID"/>
+                    <label for="userID">User ID/Email:</label>
+                    <input type="text" name="userID" id="userID" required/>
                 </p>
                 <p>
                     <label for="password">Password:</label>
-                    <input type="password" name="password" id="password"/>
+                    <input type="password" name="password" id="password" required/>
                 </p>
                 <p>
-                    <input type="submit"/>
+                    <button type="submit">Log in</button>
                     <input type="reset"/>
                 </p>
+                <div id="loading" style="display: none;">Logging in...</div>
+                <div id="errorMessage" style="color: red;"></div>
             </fieldset>
         </form>
     </div>
@@ -40,11 +42,13 @@
     const form = document.querySelector("#loginForm");
     const loginStatus = document.getElementById('loginStatus');
     const loginFormContainer = document.getElementById('loginFormContainer');
+    const loading = document.getElementById('loading');
+    const errorMessage = document.getElementById('errorMessage');
 
     function checkLoginStatus() {
-        const username = sessionStorage.getItem('userID');
-        if (username) {
-            loginStatus.innerHTML = `<p>You are already logged in as ${username}.</p>`;
+        const token = sessionStorage.getItem('token');
+        if (token) {
+            loginStatus.innerHTML = `<p>You are already logged in.</p>`;
             loginFormContainer.style.display = 'none';
         } else {
             loginStatus.style.display = 'none';
@@ -52,10 +56,11 @@
         }
     }
 
-    checkLoginStatus(); // Check on page load
+    checkLoginStatus();
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();
+        errorMessage.textContent = "";
         submitForm();
     });
 
@@ -63,8 +68,15 @@
         var userID = document.getElementById('userID').value;
         var password = document.getElementById('password').value;
 
+        if (!userID || !password) {
+            errorMessage.textContent = "Please enter both User ID/Email and password.";
+            return;
+        }
+
+        loading.style.display = 'block';
+
         var requestData = {
-            "userID": userID,
+            "identifier": userID,
             "password": password
         };
 
@@ -76,38 +88,36 @@
             body: JSON.stringify(requestData)
         })
             .then(response => {
+                loading.style.display = 'none';
                 if (!response.ok) {
-                    console.error('Login failed:', response.status);
-                    alert("Error Logging in.");
-                    return;
+                    return response.json().then(errorData => {
+                        errorMessage.textContent = errorData.message || "Login failed.";
+                    });
                 }
                 return response.json();
             })
             .then(data => {
-                console.log("Success", data);
-                try {
-                    let userID;
-                    if (data.Input && typeof data.Input === 'object' && data.Input.userID) {
-                        userID = data.Input.userID;
+                if (data) {
+                    try {
                         sessionStorage.setItem("userID", userID);
-                    } else {
                         console.warn("Could not retrieve username from Input.");
-                    }
 
-                    const authTokenData = JSON.parse(data.Token);
-                    sessionStorage.setItem("role", authTokenData.role);
-                    sessionStorage.setItem("token", authTokenData.tokenID);
-                    alert('Log in successful');
-                    document.getElementById("loginForm").reset();
-                    window.location = '../index.html';
-                } catch (error) {
-                    console.error("Error parsing authToken:", error);
-                    alert("Login successful, but could not retrieve user information.");
+                        const authTokenData = JSON.parse(data.Token);
+                        sessionStorage.setItem("role", authTokenData.role);
+                        sessionStorage.setItem("token", authTokenData.tokenID);
+                        alert('Log in successful');
+                        document.getElementById("loginForm").reset();
+                        window.location = '../index.html';
+                    } catch (error) {
+                        console.error("Error parsing authToken:", error);
+                        errorMessage.textContent = "Login successful, but could not retrieve user information.";
+                    }
                 }
             })
             .catch(error => {
+                loading.style.display = 'none';
                 console.error('Network error:', error);
-                alert("Error Logging in.");
+                errorMessage.textContent = "Network error. Please try again.";
             });
     }
 </script>

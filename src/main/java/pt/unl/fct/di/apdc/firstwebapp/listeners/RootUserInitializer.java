@@ -31,7 +31,7 @@ public class RootUserInitializer implements ServletContextListener {
                         .set("user_name", "root")
                         .set("user_email", "root@example.com")
                         .set("user_phone", "+1234567890")
-                        .set("user_pwd", DigestUtils.sha512Hex("rootPassword"))
+                        .set("user_pwd", DigestUtils.sha512Hex("r00tP@ss"))
                         .set("user_role", "ADMIN")
                         .set("user_state", "active")
                         .set("user_profile", "private")
