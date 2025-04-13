@@ -16,7 +16,7 @@ import jakarta.ws.rs.core.Response.Status;
 import com.google.cloud.datastore.*;
 import com.google.gson.Gson;
 
-import pt.unl.fct.di.apdc.firstwebapp.util.ChangeStateData;
+import pt.unl.fct.di.apdc.firstwebapp.util.ChangeStateData; // Uses updated class
 import pt.unl.fct.di.apdc.firstwebapp.util.OpResult;
 import pt.unl.fct.di.apdc.firstwebapp.util.AuthUtil;
 
@@ -31,7 +31,16 @@ public class ChangeStateResource {
             .build()
             .getService();
 
-    private static final String OPERATION_NAME = "OP3 - changeState";
+    private static final String OPERATION_NAME = "OP4 - changeState";
+
+    private static final String KIND_USER = "User";
+    private static final String FIELD_ROLE = "user_role";
+    private static final String FIELD_STATE = "user_state";
+
+    private static final String STATE_ACTIVE = "active";
+    private static final String STATE_INACTIVE = "inactive";
+    private static final String STATE_SUSPENDED = "suspended";
+
 
     public ChangeStateResource() {}
 
@@ -48,29 +57,23 @@ public class ChangeStateResource {
 
         LOG.fine("Attempting state change: User '" + data.userID1 + "' wants to toggle state for user '" + data.userID2 + "'.");
 
-        // Token Validation
         String tokenID = AuthUtil.extractTokenID(authHeader);
         if (tokenID == null) {
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Missing or invalid token.");
             return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }
-
         Key tokenKey = datastore.newKeyFactory().setKind(AuthUtil.AUTH_TOKEN_KIND).newKey(tokenID);
         Entity tokenEntity = datastore.get(tokenKey);
-
         if (tokenEntity == null) {
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Token not found.");
             return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }
-
         long expirationDate = tokenEntity.getLong("expiration_date");
         if (expirationDate < System.currentTimeMillis()) {
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Token expired.");
             return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }
-
         String loggedInUsername = tokenEntity.getString("user_username");
-
         if (!loggedInUsername.equals(data.userID1)) {
             OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Unauthorized: Token does not match initiating user.");
             return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
@@ -78,8 +81,8 @@ public class ChangeStateResource {
 
         Transaction txn = datastore.newTransaction();
         try {
-            Key userOneKey = datastore.newKeyFactory().setKind("User").newKey(data.userID1);
-            Key userTwoKey = datastore.newKeyFactory().setKind("User").newKey(data.userID2);
+            Key userOneKey = datastore.newKeyFactory().setKind(KIND_USER).newKey(data.userID1);
+            Key userTwoKey = datastore.newKeyFactory().setKind(KIND_USER).newKey(data.userID2);
 
             Entity userOne = txn.get(userOneKey);
             Entity userTwo = txn.get(userTwoKey);
@@ -97,44 +100,52 @@ public class ChangeStateResource {
                 return Response.status(Status.NOT_FOUND).entity(g.toJson(errorResult)).build();
             }
 
-            String userOneRole = userOne.getString("user_role");
-            String userTwoRole = userTwo.getString("user_role");
-            boolean userTwoCurrentState = userTwo.getBoolean("user_state");
+            String userOneRole = userOne.getString(FIELD_ROLE);
+            String userTwoCurrentState = userTwo.contains(FIELD_STATE) ? userTwo.getString(FIELD_STATE) : STATE_INACTIVE;
 
-            if (!data.authorizeStateChange(userOneRole, userTwoRole)) {
+            if (!data.authorizeStateChange(userOneRole, userTwoCurrentState)) {
                 txn.rollback();
-                LOG.warning("Authorization failed: User " + data.userID1 + " (Role: " + userOneRole + ") cannot change state for user " + data.userID2 + " (Role: " + userTwoRole + ")");
-                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "User " + data.userID1 + " is not authorized to change the state of user " + data.userID2 + ".");
+                LOG.warning("Authorization failed: User " + data.userID1 + " (Role: " + userOneRole + ") is not authorized to change account state to '" + data.newState + "' from '" + userTwoCurrentState + "'.");
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "User " + data.userID1 + " is not authorized to perform this action on user " + data.userID2 + ".");
                 return Response.status(Status.FORBIDDEN).entity(g.toJson(errorResult)).build();
             }
 
-            boolean newUserTwoState = !userTwoCurrentState;
+            // Validate the requested new state
+            String requestedNewState = data.newState.trim().toLowerCase();
+            if (!requestedNewState.equals(STATE_ACTIVE) &&
+                    !requestedNewState.equals(STATE_INACTIVE) &&
+                    !requestedNewState.equals(STATE_SUSPENDED)) {
+                txn.rollback();
+                LOG.warning("Invalid new state requested: " + data.newState);
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Invalid requested state: " + data.newState + ". Allowed states are: active, inactive, suspended.");
+                return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
+            }
 
-            Entity.Builder builder = Entity.newBuilder(userTwoKey);
-            userTwo.getProperties().forEach(builder::set);
-            builder.set("user_state", newUserTwoState);
-            Entity updatedUserTwo = builder.build();
+            Entity updatedUserTwo = Entity.newBuilder(userTwoKey, userTwo)
+                    .set(FIELD_STATE, requestedNewState)
+                    .build();
 
             txn.put(updatedUserTwo);
             txn.commit();
 
-            LOG.info("Successfully changed state of user '" + data.userID2 + "' to " + (newUserTwoState ? "ACTIVE" : "INACTIVE") + " by user '" + data.userID1 + "'.");
-            OpResult successResult = new OpResult(OPERATION_NAME, data, tokenID, "Successfully updated state for user: " + data.userID2 + " to " + (newUserTwoState ? "ACTIVE" : "INACTIVE"));
+            LOG.info("Successfully changed state of user '" + data.userID2 + "' to '" + requestedNewState + "' by user '" + data.userID1 + "'.");
+            OpResult successResult = new OpResult(OPERATION_NAME, data, tokenID, "Successfully updated state for user: " + data.userID2 + " to " + requestedNewState);
             return Response.ok(g.toJson(successResult)).build();
+
 
         } catch (DatastoreException e) {
             if (txn.isActive()) txn.rollback();
-            LOG.log(Level.SEVERE, "Datastore error during state change: " + e.getMessage(), e);
+            LOG.log(Level.SEVERE, "Datastore error during state change for target user " + data.userID2 + ": " + e.getMessage(), e);
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Datastore error during state change.");
             return Response.status(Status.INTERNAL_SERVER_ERROR).entity(g.toJson(errorResult)).build();
         } catch (Exception e) {
             if (txn.isActive()) txn.rollback();
-            LOG.log(Level.SEVERE, "Unexpected error during state change: " + e.getMessage(), e);
+            LOG.log(Level.SEVERE, "Unexpected error during state change for target user " + data.userID2 + ": " + e.getMessage(), e);
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "An unexpected error occurred.");
             return Response.status(Status.INTERNAL_SERVER_ERROR).entity(g.toJson(errorResult)).build();
         } finally {
             if (txn.isActive()) {
-                LOG.warning("Transaction was still active in finally block, rolling back.");
+                LOG.warning("Transaction was still active in finally block for state change initiated by " + data.userID1 + ", rolling back.");
                 txn.rollback();
             }
         }

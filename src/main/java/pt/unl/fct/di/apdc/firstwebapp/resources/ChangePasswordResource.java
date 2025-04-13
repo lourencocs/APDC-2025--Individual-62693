@@ -22,9 +22,8 @@ public class ChangePasswordResource {
     private static final Logger LOG = Logger.getLogger(ChangePasswordResource.class.getName());
     private final Datastore datastore = DatastoreOptions.newBuilder().setProjectId("projetoadc-456513").build().getService();
 
-    private static final String KIND_USER = "User";
     private static final String FIELD_PASSWORD = "user_pwd";
-    private static final String OPERATION_NAME = "OP7 - changePassword"; // Operation name
+    private static final String OPERATION_NAME = "OP8 - changePassword"; // Operation name
 
     @POST
     @Path("/change")

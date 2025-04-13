@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
 public class LogoutResource {
 
-    private static final String OPERATION_NAME = "OP10 - logout";
+    private static final String OPERATION_NAME = "OP9 - logout";
 
     private static final Logger LOG = Logger.getLogger(LogoutResource.class.getName());
     private final Gson g = new Gson();

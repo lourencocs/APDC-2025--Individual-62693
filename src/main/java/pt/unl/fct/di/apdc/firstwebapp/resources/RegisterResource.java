@@ -37,9 +37,11 @@ public class RegisterResource {
     private static final String FIELD_ADDRESS = "address";
     private static final String FIELD_POSTAL_CODE = "postal_Code";
     private static final String FIELD_NIF = "NIF";
+    private static final String FIELD_CC = "user_citizen_card";
+    private static final String FIELD_EMPLOYER_NIF ="user_employer_nif";
 
-    private static final String DEFAULT_ROLE = "USER";
-    private static final boolean DEFAULT_STATE = false;
+    private static final String DEFAULT_ROLE = "ENDUSER";
+    private static final String DEFAULT_STATE = "inactive";
 
     @POST
     @Path("/")
@@ -48,13 +50,21 @@ public class RegisterResource {
         LOG.fine("Register attempt by user: " + data.userID);
 
         if (!data.validRegistration()) {
-            return Response.status(Status.BAD_REQUEST).entity("Missing or empty required parameter (userID, name, email, phone, password).").build();
+            OpResult result = new OpResult(OPERATION_NAME, data, null, "Missing, wrong or empty required parameter (userID," +
+                    " name, email, phone, password, confirmationPassword, profile).");
+            return Response.status(Status.BAD_REQUEST).entity(g.toJson(result)).build();
+        }
+        if (!data.password.equals(data.passwordConfirmation)) {
+            OpResult result = new OpResult(OPERATION_NAME, data, null, "Passwords do not match.");
+            return Response.status(Status.BAD_REQUEST).entity(g.toJson(result)).build();
         }
         if (!isValidEmail(data.email)) {
-            return Response.status(Status.BAD_REQUEST).entity("Invalid email format.").build();
+            OpResult result = new OpResult(OPERATION_NAME, data, null, "Invalid email format.");
+            return Response.status(Status.BAD_REQUEST).entity(g.toJson(result)).build();
         }
         if (!isValidPassword(data.password)) {
-            return Response.status(Status.BAD_REQUEST).entity("Password does not meet complexity requirements (e.g., minimum 8 chars, letters, numbers).").build();
+            OpResult result = new OpResult(OPERATION_NAME, data, null, "Password does not meet complexity requirements (e.g., minimum 8 chars, letters, numbers).");
+            return Response.status(Status.BAD_REQUEST).entity(g.toJson(result)).build();
         }
 
         Transaction txn = datastore.newTransaction();
@@ -75,11 +85,13 @@ public class RegisterResource {
                         .set(FIELD_ROLE, DEFAULT_ROLE)
                         .set(FIELD_STATE, DEFAULT_STATE)
                         .set(FIELD_PROFILE, data.profile != null ? data.profile : "public")
-                        .set(FIELD_OCCUPATION, data.occupation != null ? data.occupation : "")
-                        .set(FIELD_WORKPLACE, data.workplace != null ? data.workplace : "")
-                        .set(FIELD_ADDRESS, data.address != null ? data.address : "")
-                        .set(FIELD_POSTAL_CODE, data.postalCode != null ? data.postalCode : "")
-                        .set(FIELD_NIF, data.NIF != null ? data.NIF : "")
+                        .set(FIELD_OCCUPATION, data.occupation != null ? data.occupation : "NOT DEFINED")
+                        .set(FIELD_WORKPLACE, data.workplace != null ? data.workplace : "NOT DEFINED")
+                        .set(FIELD_ADDRESS, data.address != null ? data.address : "NOT DEFINED")
+                        .set(FIELD_POSTAL_CODE, data.postalCode != null ? data.postalCode : "NOT DEFINED")
+                        .set(FIELD_NIF, data.NIF != null ? data.NIF : "NOT DEFINED")
+                        .set(FIELD_CC, data.citizenCardNumber != null ? data.citizenCardNumber : "NOT DEFINED")
+                        .set(FIELD_EMPLOYER_NIF, data.employerNIF != null ? data.employerNIF : "NOT DEFINED")
                         .set("user_creation_time", Timestamp.now())
                         .build();
 
@@ -114,13 +126,32 @@ public class RegisterResource {
     }
 
     /**
-     * Password has at least 1 number, 1 lowercase and 1 uppercase letter.
+     * --- UPDATED Password Validation ---
+     * Checks if the password meets the complexity requirements:
+     * - At least one digit [0-9]
+     * - At least one lowercase letter [a-z]
+     * - At least one uppercase letter [A-Z]
+     * - At least one punctuation symbol (e.g., !@#$%^&*()_+=.,<>?;':"{}[]|\-)
+     * - Minimum length (e.g., 8 characters - adjustable)
      * @param password password input
      * @return true if it passes the requirements, false otherwise.
      */
     private boolean isValidPassword(String password) {
         if (password == null) return false;
-        String passwordRegex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$";
-        return Pattern.matches(passwordRegex, password);
+
+        // Define the required character classes
+        boolean hasDigit = password.matches(".*[0-9].*");
+        boolean hasLower = password.matches(".*[a-z].*");
+        boolean hasUpper = password.matches(".*[A-Z].*");
+        // Define punctuation based on requirement "sinais de pontuação". Adjust the characters inside [] if needed.
+        // Common punctuation: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+        // Let's use a representative set. Escape special regex characters like \ - [ ] ^
+        boolean hasPunctuation = password.matches(".*[!@#$%^&*()_+=.,<>?;'].*");
+
+        int minLength = 8;
+        boolean hasMinLength = password.length() >= minLength;
+
+        return hasDigit && hasLower && hasUpper && hasPunctuation && hasMinLength;
+
     }
 }

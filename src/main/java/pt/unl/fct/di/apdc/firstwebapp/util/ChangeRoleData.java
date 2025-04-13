@@ -5,18 +5,18 @@ import java.util.HashSet;
 
 public class ChangeRoleData {
 
-    public static final String ROLE_SU = "SU";
-    public static final String ROLE_GA = "GA";
-    public static final String ROLE_GBO = "GBO";
-    public static final String ROLE_USER = "USER";
-    private static final Set<String> VALID_ROLES = new HashSet<>(Set.of(ROLE_SU, ROLE_GA, ROLE_GBO, ROLE_USER));
+    public static final String ROLE_ADMIN = "ADMIN";
+    public static final String ROLE_BACKOFFICE = "BACKOFFICE";
+    public static final String ROLE_PARTNER = "PARTNER";
+    public static final String ROLE_ENDUSER = "ENDUSER";
 
-    public String userID1; // User initiating the change
-    public String userID2; // User whose role is to be changed
-    public String newRole; // The target role
+    private static final Set<String> VALID_ROLES = new HashSet<>(Set.of(ROLE_ADMIN, ROLE_BACKOFFICE, ROLE_PARTNER, ROLE_ENDUSER));
+
+    public String userID1;
+    public String userID2;
+    public String newRole;
 
     public ChangeRoleData() {
-        // Default constructor for JSON deserialization
     }
 
     public ChangeRoleData(String userID1, String userID2, String newRole) {
@@ -45,14 +45,14 @@ public class ChangeRoleData {
         String u2RoleUpper = userTwoRole.toUpperCase();
         String newRoleUpper = this.newRole.toUpperCase();
 
-        if (u1RoleUpper.equals(ROLE_SU)) {
+        if (u1RoleUpper.equals(ROLE_ADMIN)) {
             return true;
         }
 
-        if (u1RoleUpper.equals(ROLE_GA)) {
-            boolean isUserToGbo = u2RoleUpper.equals(ROLE_USER) && newRoleUpper.equals(ROLE_GBO);
-            boolean isGboToUser = u2RoleUpper.equals(ROLE_GBO) && newRoleUpper.equals(ROLE_USER);
-            return isUserToGbo || isGboToUser;
+        if (u1RoleUpper.equals(ROLE_BACKOFFICE)) {
+            boolean isEndUserToPartner = u2RoleUpper.equals(ROLE_ENDUSER) && newRoleUpper.equals(ROLE_PARTNER);
+            boolean isPartnerToEndUser = u2RoleUpper.equals(ROLE_PARTNER) && newRoleUpper.equals(ROLE_ENDUSER);
+            return isEndUserToPartner || isPartnerToEndUser;
         }
 
         return false;

@@ -2,6 +2,7 @@ package pt.unl.fct.di.apdc.firstwebapp.resources;
 
 import com.google.cloud.datastore.*;
 import com.google.gson.Gson;
+import com.google.cloud.datastore.StructuredQuery.PropertyFilter;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
@@ -23,7 +24,10 @@ public class RemoveResource {
             .build()
             .getService();
 
-    private static final String OPERATION_NAME = "OP4 - removeUser";
+    private static final String OPERATION_NAME = "OP5 - removeUser"; // Corrected operation name
+    private static final String KIND_USER = "User";
+    private static final String FIELD_EMAIL = "user_email";
+    private static final String FIELD_ROLE = "user_role";
 
     @POST
     @Path("/")
@@ -31,7 +35,7 @@ public class RemoveResource {
     public Response removeUser(RemoveData data, @HeaderParam(HttpHeaders.AUTHORIZATION) String authHeader) {
 
         if (!data.isValid()) {
-            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Missing or wrong parameter.");
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Missing or wrong parameter (must provide userID or email to remove).");
             return Response.status(Status.BAD_REQUEST).entity(g.toJson(errorResult)).build();
         }
 
@@ -41,21 +45,13 @@ public class RemoveResource {
             return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }
 
-        Key tokenKey = datastore.newKeyFactory().setKind(AuthUtil.AUTH_TOKEN_KIND).newKey(tokenID);
-        Entity tokenEntity = datastore.get(tokenKey);
-
-        if (tokenEntity == null) {
-            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Token not found.");
+        Entity requestingUser = AuthUtil.validateToken(datastore, tokenID);
+        if (requestingUser == null) {
+            LOG.warning("Remove user request with invalid or expired token: " + tokenID);
+            OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Invalid or expired token.");
             return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }
-
-        long expirationDate = tokenEntity.getLong("expiration_date");
-        if (expirationDate < System.currentTimeMillis()) {
-            OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Token expired.");
-            return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
-        }
-
-        String loggedInUsername = tokenEntity.getString("user_username");
+        String loggedInUsername = requestingUser.getKey().getName();
 
         if (!loggedInUsername.equals(data.userID1)) {
             OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Unauthorized: Token does not match initiating user.");
@@ -64,34 +60,43 @@ public class RemoveResource {
 
         Transaction txn = datastore.newTransaction();
         try {
-            Key userKey = datastore.newKeyFactory().setKind("User").newKey(data.userID1);
-            Entity user = txn.get(userKey);
-            Key targetKey = datastore.newKeyFactory().setKind("User").newKey(data.userID2);
-            Entity target = txn.get(targetKey);
+            Key targetKey = null;
+            Entity targetUser = null;
 
-            if (user == null) {
+            if (data.userID2 != null && !data.userID2.trim().isEmpty()) {
+                targetKey = datastore.newKeyFactory().setKind(KIND_USER).newKey(data.userID2);
+                targetUser = txn.get(targetKey);
+            } else if (data.email != null && !data.email.trim().isEmpty()) {
+                Query<Entity> query = Query.newEntityQueryBuilder()
+                        .setKind(KIND_USER)
+                        .setFilter(PropertyFilter.eq(FIELD_EMAIL, data.email))
+                        .setLimit(1) // Assuming emails are unique
+                        .build();
+                QueryResults<Entity> results = txn.run(query);
+                if (results.hasNext()) {
+                    targetUser = results.next();
+                    targetKey = targetUser.getKey();
+                }
+            }
+
+            if (targetUser == null) {
                 txn.rollback();
-                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Initiating user doesn't exist.");
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Target user not found with provided userID or email.");
                 return Response.status(Status.CONFLICT).entity(g.toJson(errorResult)).build();
             }
 
-            if (target == null) {
+            if (!data.authorizeChange(requestingUser.getString(FIELD_ROLE), targetUser.getString(FIELD_ROLE))) {
                 txn.rollback();
-                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "Target user doesn't exist.");
-                return Response.status(Status.CONFLICT).entity(g.toJson(errorResult)).build();
-            }
-
-            if (!data.authorizeChange(user.getString("user_role"), target.getString("user_role"))) {
-                txn.rollback();
-                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "User doesn't have permission.");
+                OpResult errorResult = new OpResult(OPERATION_NAME, data, tokenID, "User doesn't have permission to remove this account.");
                 return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
             }
 
             txn.delete(targetKey);
 
-            if (loggedInUsername.equals(data.userID2)) { // if user deletes itself.
-                txn.delete(tokenKey); // delete the users token.
-                LOG.info("User " + loggedInUsername + " deleted itself and logout.");
+            if (loggedInUsername.equals(targetUser.getKey().getName())) { // if user deletes itself.
+                Key tokenToDeleteKey = datastore.newKeyFactory().setKind(AuthUtil.AUTH_TOKEN_KIND).newKey(tokenID);
+                txn.delete(tokenToDeleteKey); // delete the users token.
+                LOG.info("User " + loggedInUsername + " deleted itself and logged out.");
             }
 
             txn.commit();
@@ -100,12 +105,12 @@ public class RemoveResource {
             return Response.ok(g.toJson(successResult)).build();
 
         } catch (DatastoreException e) {
-            txn.rollback();
+            if (txn.isActive()) txn.rollback();
             LOG.severe("Datastore error: " + e.getMessage());
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Datastore error: " + e.getMessage());
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(g.toJson(errorResult)).build();
         } catch (Exception e) {
-            txn.rollback();
+            if (txn.isActive()) txn.rollback();
             LOG.severe("Server error: " + e.getMessage());
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Server error: " + e.getMessage());
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(g.toJson(errorResult)).build();
