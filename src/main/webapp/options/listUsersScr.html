@@ -26,7 +26,19 @@
                 <th>Username</th>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Profile</th>
+                <th>Phone</th>
                 <th>Role</th>
+                <th>State</th>
+                <th>Profile</th>
+                <th>Occupation</th>
+                <th>Workplace</th>
+                <th>Address</th>
+                <th>Postal Code</th>
+                <th>NIF</th>
+                <th>CC</th>
+                <th>Employer NIF</th>
+                <th></th>
             </tr>
             </thead>
             <tbody id="userListBody">
@@ -63,9 +75,9 @@
     function loadUserList() {
         const token = sessionStorage.getItem("token");
 
-        loadingMessage.style.display = 'block'; // Show loading indicator
-        errorMessage.style.display = 'none';   // Hide previous errors
-        userListBody.innerHTML = '';           // Clear previous table data
+        loadingMessage.style.display = 'block';
+        errorMessage.style.display = 'none';
+        userListBody.innerHTML = '';
 
         fetch('../../rest/listusers/', {
             method: 'POST',
@@ -88,7 +100,7 @@
                 populateUserTable(users);
             })
             .catch(error => {
-                loadingMessage.style.display = 'none'; // Hide loading indicator
+                loadingMessage.style.display = 'none';
                 console.error('Failed to load users:', error);
                 errorMessage.textContent = error.message || "An error occurred while fetching the user list.";
                 errorMessage.style.display = 'block';
@@ -101,28 +113,28 @@
         if (!users || users.length === 0) {
             const row = userListBody.insertRow();
             const cell = row.insertCell();
-            cell.colSpan = 4;
+            cell.colSpan = 15; // Adjusted colSpan to match the number of columns
             cell.textContent = 'No users to display.';
             cell.style.textAlign = 'center';
             return;
         }
 
-        const keysToShow = ['username', 'name', 'user_email', 'user_role'];
+        const keysToShow = [
+            'username', 'name', 'user_email', 'user_profile', 'user_phone',
+            'user_role', 'user_state', 'user_isPublic', 'occupation',
+            'workplace', 'address', 'postal_Code', 'NIF', 'user_citizen_card',
+            'user_employer_nif'
+        ];
 
         users.forEach(user => {
             const row = userListBody.insertRow();
             keysToShow.forEach(key => {
                 const cell = row.insertCell();
-                cell.textContent = user[key] !== null && user[key] !== undefined ? user[key] : 'N/A';
+                cell.textContent = user[key] !== null && user[key] !== undefined ? user[key] : 'NOT ALLOWED';
             });
-            if (user.state !== undefined) {
-                 const cell = row.insertCell();
-                 cell.textContent = user.state ? 'Active' : 'Inactive';
-            }
         });
     }
 
     displayCurrentUserRole();
-
 </script>
 </html>

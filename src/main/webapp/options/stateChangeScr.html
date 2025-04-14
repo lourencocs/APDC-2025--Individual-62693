@@ -31,6 +31,7 @@
                 <select name="newState" id="newState">
                     <option value="ACTIVE">ACTIVE</option>
                     <option value="INACTIVE">INACTIVE</option>
+                    <option value="SUSPENDED">SUSPENDED</option>
                 </select>
             </p>
             <p>
@@ -54,7 +55,7 @@
             stateStatus.innerHTML = `<p>Your role: ${role}</p>`;
         } else {
             stateStatus.innerHTML = `<p>Your role: none</p><p>No user logged in</p>`;
-            // Optionally disable the form if no user is logged in
+
             const stateForm = document.getElementById('stateForm');
             if (stateForm) {
                 stateForm.style.display = 'none';
@@ -62,7 +63,7 @@
         }
     }
 
-    displayCurrentUserRole(); // Display role on page load
+    displayCurrentUserRole();
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -80,18 +81,17 @@
             return;
         }
 
-        // All fields are filled, make the AJAX call to submit the form
         var requestData = {
-            "userID1": loggedInUsername, // User initiating the change
-            "userID2": usernameTwo      // Target user
+            "userID1": loggedInUsername,
+            "userID2": usernameTwo,
+            "newState": newState
         };
 
-        // Make AJAX POST request to your backend
-        fetch('../../rest/changestate/', { // Use the correct backend endpoint
+        fetch('../../rest/changestate/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token // Include the token in the header
+                'Authorization': 'Bearer ' + token
             },
             body: JSON.stringify(requestData)
         })

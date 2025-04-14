@@ -1,10 +1,181 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <title>Work Sheet Operations</title>
 </head>
 <body>
+<div class="sidebar">
+    <ul>
+        <li>
+            <a href="../index.html">
+                <span class="nav-item">Main Page</span>
+            </a>
+        </li>
+    </ul>
+</div>
 
+<fieldset>
+    <legend>Create Work Sheet</legend>
+    <form id="createWorkSheetForm">
+        <p>
+            <label for="createReference">Reference:</label>
+            <input type="text" id="createReference" required />
+        </p>
+        <p>
+            <label for="createDescription">Description:</label>
+            <textarea id="createDescription" required></textarea>
+        </p>
+        <p>
+            <label for="createTargetType">Target Type:</label>
+            <select id="createTargetType" required>
+                <option value="Propriedade Pública">Propriedade Pública</option>
+                <option value="Propriedade Privada">Propriedade Privada</option>
+            </select>
+        </p>
+        <p>
+            <button type="submit">Create Work Sheet</button>
+        </p>
+    </form>
+</fieldset>
+
+<fieldset>
+    <legend>Adjudicate Work Sheet</legend>
+    <form id="adjudicateWorkSheetForm">
+        <p>
+            <label for="adjudicateReference">Reference:</label>
+            <input type="text" id="adjudicateReference" required />
+        </p>
+        <p>
+            <label for="adjudicationDate">Adjudication Date (YYYY-MM-DD):</label>
+            <input type="text" id="adjudicationDate" required />
+        </p>
+        <p>
+            <label for="startDate">Start Date (YYYY-MM-DD):</label>
+            <input type="text" id="startDate" required />
+        </p>
+        <p>
+            <label for="endDate">End Date (YYYY-MM-DD):</label>
+            <input type="text" id="endDate" required />
+        </p>
+        <p>
+            <label for="partnerAccount">Partner Account:</label>
+            <input type="text" id="partnerAccount" required />
+        </p>
+        <p>
+            <label for="adjudicatingEntity">Adjudicating Entity:</label>
+            <input type="text" id="adjudicatingEntity" required />
+        </p>
+        <p>
+            <label for="entityNif">Entity NIF:</label>
+            <input type="text" id="entityNif" required />
+        </p>
+        <p>
+            <label for="adjudicationObservations">Observations:</label>
+            <textarea id="adjudicationObservations"></textarea>
+        </p>
+        <p>
+            <button type="submit">Adjudicate Work Sheet</button>
+        </p>
+    </form>
+</fieldset>
+
+<fieldset>
+    <legend>Update Work Status</legend>
+    <form id="updateWorkStatusForm">
+        <p>
+            <label for="statusReference">Reference:</label>
+            <input type="text" id="statusReference" required />
+        </p>
+        <p>
+            <label for="workStatus">Work Status:</label>
+            <select id="workStatus" required>
+                <option value="NÃO INICIADO">NÃO INICIADO</option>
+                <option value="EM CURSO">EM CURSO</option>
+                <option value="CONCLUÍDO">CONCLUÍDO</option>
+            </select>
+        </p>
+        <p>
+            <label for="statusObservations">Observations:</label>
+            <textarea id="statusObservations"></textarea>
+        </p>
+        <p>
+            <button type="submit">Update Work Status</button>
+        </p>
+    </form>
+</fieldset>
+
+<script>
+    // Create Work Sheet
+    document.getElementById('createWorkSheetForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const reference = document.getElementById('createReference').value;
+        const description = document.getElementById('createDescription').value;
+        const targetType = document.getElementById('createTargetType').value;
+        const token = sessionStorage.getItem('token');
+
+        fetch('../../rest/worksheet/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ reference, description, targetType })
+        })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error('Error:', error));
+    });
+
+    // Adjudicate Work Sheet
+    document.getElementById('adjudicateWorkSheetForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const reference = document.getElementById('adjudicateReference').value;
+        const adjudicationDate = document.getElementById('adjudicationDate').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const partnerAccount = document.getElementById('partnerAccount').value;
+        const adjudicatingEntity = document.getElementById('adjudicatingEntity').value;
+        const entityNif = document.getElementById('entityNif').value;
+        const adjudicationObservations = document.getElementById('adjudicationObservations').value;
+        const token = sessionStorage.getItem('token');
+
+        fetch('../../rest/worksheet/adjudicate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ reference, adjudicationDate, startDate, endDate, partnerAccount, adjudicatingEntity, entityNif, adjudicationObservations })
+        })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error('Error:', error));
+    });
+
+    // Update Work Status
+    document.getElementById('updateWorkStatusForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const reference = document.getElementById('statusReference').value;
+        const workStatus = document.getElementById('workStatus').value;
+        const statusObservations = document.getElementById('statusObservations').value;
+        const token = sessionStorage.getItem('token');
+
+        fetch('../../rest/worksheet/status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ reference, workStatus, statusObservations })
+        })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error('Error:', error));
+    });
+</script>
 </body>
 </html>

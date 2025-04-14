@@ -58,7 +58,7 @@ public class ChangeRoleResource {
             return Response.status(Status.UNAUTHORIZED).entity(g.toJson(errorResult)).build();
         }
         Key tokenKey = datastore.newKeyFactory().setKind(AuthUtil.AUTH_TOKEN_KIND).newKey(tokenID);
-        Entity tokenEntity = datastore.get(tokenKey); // Use datastore.get for single key lookup (no transaction needed yet)
+        Entity tokenEntity = datastore.get(tokenKey);
 
         if (tokenEntity == null) {
             OpResult errorResult = new OpResult(OPERATION_NAME, data, null, "Token not found.");

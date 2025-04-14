@@ -115,6 +115,14 @@
         var citizenCardNumber = document.getElementById('citizenCardNumber').value;
         var employerNIF = document.getElementById('employerNIF').value;
 
+        occupation = occupation.trim() === '' ? "NOT DEFINED" : occupation;
+        workplace = workplace.trim() === '' ? "NOT DEFINED" : workplace;
+        address = address.trim() === '' ? "NOT DEFINED" : address;
+        postalCode = postalCode.trim() === '' ? "NOT DEFINED" : postalCode;
+        NIF = NIF.trim() === '' ? "NOT DEFINED" : NIF;
+        citizenCardNumber = citizenCardNumber.trim() === '' ? "NOT DEFINED" : citizenCardNumber;
+        employerNIF = employerNIF.trim() === '' ? "NOT DEFINED" : employerNIF;
+
         var requestData = {
             "userID": userID,
             "name": name,

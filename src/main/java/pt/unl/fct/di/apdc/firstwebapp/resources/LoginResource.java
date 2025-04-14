@@ -133,9 +133,6 @@ public class LoginResource {
                         .build();
             }
 
-            LOG.warning("Entered password hash: " + DigestUtils.sha512Hex(data.password));
-            LOG.warning("Stored password hash: " + storedPasswordHash);
-
             if (storedPasswordHash.equals(DigestUtils.sha512Hex(data.password))) {
                 if (isActive) {
                     LOG.info("User '" + actualUserID + "' credentials verified and account is active.");

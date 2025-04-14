@@ -139,13 +139,9 @@ public class RegisterResource {
     private boolean isValidPassword(String password) {
         if (password == null) return false;
 
-        // Define the required character classes
         boolean hasDigit = password.matches(".*[0-9].*");
         boolean hasLower = password.matches(".*[a-z].*");
         boolean hasUpper = password.matches(".*[A-Z].*");
-        // Define punctuation based on requirement "sinais de pontuação". Adjust the characters inside [] if needed.
-        // Common punctuation: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
-        // Let's use a representative set. Escape special regex characters like \ - [ ] ^
         boolean hasPunctuation = password.matches(".*[!@#$%^&*()_+=.,<>?;'].*");
 
         int minLength = 8;
